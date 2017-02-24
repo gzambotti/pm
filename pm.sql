@@ -24,9 +24,9 @@ CREATE TABLE pm25 (gid serial NOT NULL, lat double precision, lng double precisi
 
 COPY pm25 from '/path/PM25_Predictions_New_England/pm25.csv' DELIMITERS ',' CSV header;
 
-ALTER TABLE pm25 add column geom geometry (Point, 4236);
+ALTER TABLE pm25 add column geom geometry (Point, 4326);
 
-UPDATE pm25 SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4236);
+UPDATE pm25 SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4326);
 
 ALTER TABLE pm25 ALTER COLUMN geom TYPE geometry(Point, 2163) USING ST_Transform(geom, 2163);
 
@@ -41,9 +41,9 @@ CREATE TABLE pobox (gid serial NOT NULL, zip character varying, enc_zip characte
 
 COPY pobox from '/path/Predicted_PM25/PO_boxes.csv' DELIMITERS ',' CSV header;
 
-ALTER TABLE pobox add column geom geometry (Point, 4236);
+ALTER TABLE pobox add column geom geometry (Point, 4326);
 
-UPDATE pobox SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4236);
+UPDATE pobox SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4326);
 
 ALTER TABLE pobox ALTER COLUMN geom TYPE geometry(Point, 2163) USING ST_Transform(geom, 2163);
 
@@ -58,16 +58,16 @@ WHERE ST_DWithin(zipcode.geom, pm25.geom, 1000) GROUP BY zipcode.gid;
 
 -- Task 2: Calculate the PM average by block group, include censusid, zipcode, population, latlng fields to the table.
 
-create table newpm25 as select sum(pm)/count(*) as averagepm, pop2007 as pop, fips, ST_Centroid(blockgrp.geom) as geom, ST_AsText(ST_Centroid(ST_Transform(blockgrp.geom, 4326))) as latlng FROM pm25, blockgrp WHERE ST_DWithin(blockgrp.geom, pm25.geom, 1000) GROUP BY blockgrp.gid;
+CREATE TABLE newpm25 AS SELECT sum(pm)/count(*) AS averagepm, pop2007 AS pop, fips, ST_Centroid(blockgrp.geom) AS geom, ST_AsText(ST_Centroid(ST_Transform(blockgrp.geom, 4326))) AS latlng FROM pm25, blockgrp WHERE ST_DWithin(blockgrp.geom, pm25.geom, 1000) GROUP BY blockgrp.gid;
 
 CREATE INDEX newpm25_gix ON newpm25 USING GIST (geom);
 
-select fips as censusid, zip, averagepm, pop, latlng from newpm25, zipcode where st_intersects(newpm25.geom, zipcode.geom);
+SELECT fips AS censusid, zip, averagepm, pop, latlng FROM newpm25, zipcode WHERE st_intersects(newpm25.geom, zipcode.geom);
 
 -- Task 3: Calculate the PM average by PO BOX with a buffer of 1000 (unit meters):
 
-select pobox.gid, count(*) as totpm, sum(pm) as totsumpm, sum(pm)/count(*) as averagepm FROM pm25, pobox where ST_DWithin(pobox.geom, pm25.geom, 1000) GROUP BY pobox.gid;
+SELECT pobox.gid, count(*) AS totpm, sum(pm) AS totsumpm, sum(pm)/count(*) AS averagepm FROM pm25, pobox WHERE ST_DWithin(pobox.geom, pm25.geom, 1000) GROUP BY pobox.gid;
 
 -- Task 4: Calculate the PM average by block group, include censusid, blockgroup population, latlng fields to the table
 
-select fips as censusid, zip, averagepm, pop, latlng from newpm25, pobox where st_DWithin(newpm25.geom, pobox.geom, 1000) 
+SELECT fips AS censusid, zip, averagepm, pop, latlng FROM newpm25, pobox WHERE st_DWithin(newpm25.geom, pobox.geom, 1000) 
