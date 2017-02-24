@@ -1,6 +1,10 @@
 -- Create PostGIS database 'pm'
 -- Fill in 'path','username', 'passwd' with the appropriate value
 -- where username is the db username, and passwd is the db password
+-- SRID: 4326 WGS 1984
+-- SRID: 2163 US National Atlas Equal Area
+-- Check the coordinate system of the shapefile to import and change
+-- the shp2pgsql accordingly
 
 createdb pm
 psql -d pm -c "CREATE EXTENSION postgis;"
