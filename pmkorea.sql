@@ -29,10 +29,10 @@ CREATE INDEX pmkorea_gix ON pm25korea USING GIST (geom);
 -- re-project the table to EPSG: 102012 (Asia Lambert Conformal Conic)
 ALTER TABLE pmkorea ALTER COLUMN geom TYPE geometry(Point,102012) USING ST_Transform(geom, 102012);
 
-/* import world coutries shapefile using shp2pgsql, note that the counties.shp was previsouly re-project 
+/* import world coutries shapefile using shp2pgsql, note that the countries.shp was previsouly re-project 
 in Asia Lambert Conformal Conic projection using desktop gis*/
 
-shp2pgsql -c -D -I -s 102012 path/counties.shp countries | psql -d pm -h localhost -U postgres
+shp2pgsql -c -D -I -s 102012 path/countries.shp countries | psql -d pm -h localhost -U postgres
 
 CREATE INDEX countries_gix ON countries USING GIST (geom);
 
@@ -43,3 +43,8 @@ st_contains(countries.geom,pmkorea.geom) GROUP BY countries.iso2
 /* calculate points that intersect countries boundaries and percentage with buffer */
 select countries.iso2 as cname, count(*) AS totalpm, sum(count(*)) over() as sumtotalpm, (count(*)/sum(count(*)) over())*100 as percpm FROM countries, pmkorea WHERE 
 st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.iso2
+
+/*
+select countries.iso2 as cname, pm1.foo as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pm1.foo) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pm1.foo))*100 as percpm FROM countries, pm1 WHERE 
+st_contains(countries.geom,pm1.geom) GROUP BY countries.iso2, pmdate
+*/
