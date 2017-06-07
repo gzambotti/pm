@@ -37,9 +37,9 @@ shp2pgsql -c -D -I -s 102012 path/countries.shp countries | psql -d pm -h localh
 CREATE INDEX countries_gix ON countries USING GIST (geom);
 
 /* calculate points that intersect countries boundaries and percentage without buffer */
-select countries.iso2 as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
-st_contains(countries.geom,pmkorea.geom) GROUP BY countries.iso2, pmdate
+select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_contains(countries.geom,pmkorea.geom) GROUP BY countries.name, countries.iso2, pmdate
 
 /* calculate points that intersect countries boundaries and percentage with buffer */
-select countries.iso2 as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
-st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.iso2, pmdate
+select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.name, countries.iso2, pmdate
