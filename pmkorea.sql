@@ -16,16 +16,15 @@ INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) valu
 
 -- pm data import and settings
 -- create a table pmkorea 
-create table pmkorea (id oid, receptor character varying, year character varying, month character varying, day character varying, hour character varying, hourinc character varying, lat double precision, lng double precision, height double precision, pressure double precision, date2 character varying,    
-date character varying) WITH (OIDS = FALSE)
+create table pmkorea (receptor character varying, date character varying, lat double precision, lng double precision, height double precision, torder character varying, tid character varying)
 -- import data
-COPY pmkorea from 'path/from_monitor.csv' DELIMITERS ',' CSV header; 
+COPY pmkorea from 'path/from_monitor_with_id.csv' DELIMITERS ',' CSV header; 
 -- add the geometry column 
 alter table pmkorea add column geom geometry (Point, 4326)
 -- update the geometry column
 update pmkorea set geom = ST_SetSRID(ST_MakePoint(lng,lat),4326)
 -- create spatial index
-CREATE INDEX pmkorea_gix ON pm25korea USING GIST (geom);
+CREATE INDEX pmkorea_gix ON pmkorea USING GIST (geom);
 -- re-project the table to EPSG: 102012 (Asia Lambert Conformal Conic)
 ALTER TABLE pmkorea ALTER COLUMN geom TYPE geometry(Point,102012) USING ST_Transform(geom, 102012);
 
@@ -37,14 +36,9 @@ shp2pgsql -c -D -I -s 102012 path/countries.shp countries | psql -d pm -h localh
 CREATE INDEX countries_gix ON countries USING GIST (geom);
 
 /* calculate points that intersect countries boundaries and percentage without buffer */
-select countries.iso2 as cname, count(*) AS totalpm, sum(count(*)) over() as sumtotalpm, (count(*)/sum(count(*)) over())*100 as percpm FROM countries, pmkorea WHERE 
-st_contains(countries.geom,pmkorea.geom) GROUP BY countries.iso2
+select countries.iso2 as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_contains(countries.geom,pmkorea.geom) GROUP BY countries.iso2, pmdate
 
 /* calculate points that intersect countries boundaries and percentage with buffer */
-select countries.iso2 as cname, count(*) AS totalpm, sum(count(*)) over() as sumtotalpm, (count(*)/sum(count(*)) over())*100 as percpm FROM countries, pmkorea WHERE 
-st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.iso2
-
-/*
-select countries.iso2 as cname, pm1.foo as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pm1.foo) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pm1.foo))*100 as percpm FROM countries, pm1 WHERE 
-st_contains(countries.geom,pm1.geom) GROUP BY countries.iso2, pmdate
-*/
+select countries.iso2 as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.iso2, pmdate
