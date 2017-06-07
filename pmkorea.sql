@@ -6,8 +6,9 @@
 -- Check the coordinate system of the shapefile to import and change
 -- the shp2pgsql accordingly
 
-createdb pm
-psql -d pm -c "CREATE EXTENSION postgis;"
+-- open a terminal, and create a new db and add postgis extension
+createdb -h localhost -p 5432 -U postgres pm
+psql -h localhost -p 5432 -U postgres -d pm -c "CREATE EXTENSION postgis;"
 
 -- by default postgis does not have projection coordinate system for Asia, so you need to add it 
 -- using INSERT into the spatial_ref_sys table
