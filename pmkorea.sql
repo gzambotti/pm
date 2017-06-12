@@ -36,10 +36,24 @@ shp2pgsql -c -D -I -s 102012 path/countries.shp countries | psql -d pm -h localh
 
 CREATE INDEX countries_gix ON countries USING GIST (geom);
 
+-- create a pmline by t-id
+SELECT pmkorea.tid, ST_MakeLine(pmkorea.geom) as geom into pmlines from pmkorea GROUP BY pmkorea.tid
+
+-- create a spatial index
+CREATE INDEX pmline_gix ON pmlines USING GIST (geom);
+
+-- calculate pmline that intersect countries boundaries and percentage
+
+SELECT a.name, b.tid, ST_LENGTH(ST_Intersection(a.geom, b.geom)) as pmlength, 
+sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid) as tidlength,
+(ST_LENGTH(ST_Intersection(a.geom, b.geom))/sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid)) * 100 as perc
+FROM countries a, pmlines b
+WHERE ST_Intersects(a.geom, b.geom) group by b.tid, a.name, a.geom, b.geom;
+
 /* calculate points that intersect countries boundaries and percentage without buffer */
-select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
-st_contains(countries.geom,pmkorea.geom) GROUP BY countries.name, countries.iso2, pmdate
+/*select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_contains(countries.geom,pmkorea.geom) GROUP BY countries.name, countries.iso2, pmdate*/
 
 /* calculate points that intersect countries boundaries and percentage with buffer */
-select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
-st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.name, countries.iso2, pmdate
+/*select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
+st_dwithin(countries.geom,pmkorea.geom, 1000) GROUP BY countries.name, countries.iso2, pmdate*/
