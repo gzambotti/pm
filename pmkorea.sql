@@ -42,7 +42,7 @@ SELECT pmkorea.tid, ST_MakeLine(pmkorea.geom) as geom into pmlines from pmkorea 
 -- create a spatial index
 CREATE INDEX pmline_gix ON pmlines USING GIST (geom);
 
--- calculate pmline that intersect countries boundaries and percentage
+-- calculate pmlines that intersect countries boundaries and percentage
 
 SELECT a.name, b.tid, ST_LENGTH(ST_Intersection(a.geom, b.geom)) as pmlength, 
 sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid) as tidlength,
