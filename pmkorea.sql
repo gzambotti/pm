@@ -44,11 +44,11 @@ CREATE INDEX pmline_gix ON pmlines USING GIST (geom);
 
 -- calculate pmlines that intersect countries boundaries and percentage
 
-SELECT a.name, b.tid, ST_LENGTH(ST_Intersection(a.geom, b.geom)) as pmlength, 
+SELECT a.name, a.iso2, b.tid, ST_LENGTH(ST_Intersection(a.geom, b.geom)) as pmlength, 
 sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid) as tidlength,
 (ST_LENGTH(ST_Intersection(a.geom, b.geom))/sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid)) * 100 as perc
 FROM countries a, pmlines b
-WHERE ST_Intersects(a.geom, b.geom) group by b.tid, a.name, a.geom, b.geom;
+WHERE ST_Intersects(a.geom, b.geom) group by b.tid, a.name, a.iso2, a.geom, b.geom;
 
 /* calculate points that intersect countries boundaries and percentage without buffer */
 /*select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
