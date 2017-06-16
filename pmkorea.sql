@@ -50,6 +50,10 @@ sum(ST_LENGTH(ST_Intersection(a.geom, b.geom))) over(partition by b.tid) as tidl
 FROM countries a, pmlines b
 WHERE ST_Intersects(a.geom, b.geom) group by b.tid, a.name, a.iso2, a.geom, b.geom;
 
+-- alternative sql
+select tbpm.name, tbpm.iso2, tbpm.tid, (tbpm.pmlength/sum(tbpm.pmlength) over(partition by tbpm.tid))*100 as perc from (SELECT a.name, a.iso2, b.tid, ST_LENGTH(ST_Intersection(a.geom, b.geom)) as pmlength FROM countries a, pmlines b
+WHERE ST_Intersects(a.geom, b.geom) group by b.tid, a.name, a.iso2, a.geom, b.geom) as tbpm;
+
 /* calculate points that intersect countries boundaries and percentage without buffer */
 /*select countries.iso2 as iso2, countries.name as cname, pmkorea.tid as pmdate, count(*) AS totalpm, sum(count(*)) over(partition by pmkorea.tid) as sumtotalpm, (count(*)/sum(count(*)) over(partition by pmkorea.tid))*100 as percpm FROM countries, pmkorea WHERE 
 st_contains(countries.geom,pmkorea.geom) GROUP BY countries.name, countries.iso2, pmdate*/
