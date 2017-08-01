@@ -24,13 +24,21 @@ shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\midatlanewengbg.shp mi
 # import coast line to postgis
 shp2pgsql -c -D -I -s  4269 C:\gis\p2017\pmnewengland\03_Coast/Coast.shp addresses | psql -d pmne -h localhost -U postgres
 # import countway to postgis
-shp2pgsql -c -D -I -s  7406 C:\gis\p2017\pmnewengland\04_Countway\Countway.shp addresses | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s  4326 C:\gis\p2017\pmnewengland\data\countway.shp countway | psql -d pmne -h localhost -U postgres
+# import RTA_Albers.shp (this dataset was reduce in size for better performace)
+# make sure the shapefile does not have Z and M dimesnion enabled
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\12_25\RTA_Albers.shp rta | psql -d pmne -h localhost -U postgres
+# import truckroutes (why all use if it's just newengland)
+shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\truck.shp truck | psql -d pmne -h localhost -U postgres
 
 # convert layers coordinate system
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 ALTER TABLE modelboundary ALTER COLUMN geom TYPE geometry(MultiPolygon,102010) USING ST_Transform(geom,102010);
 ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102010) USING ST_Transform(geom,102010);
 ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
+ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
+ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
 
 # spatial join STEP 01 
 # requires specify addresses.geom and all fields
@@ -49,4 +57,40 @@ FROM step02, coast
 ORDER BY step02.sm_id, ST_Distance(step02.geom, coast.geom)) as sub where step02.sm_id = sub.sm;
 
 ### STEP 04 >> Calculate the distance to the countyway
-ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,5070) USING ST_Transform(geom,5070);
+alter table step02 add column countwaydis double precision;
+update step02 set countwaydis = sub.dist from (SELECT DISTINCT ON (step02.sm_id) ST_Distance(step02.geom, countway.geom)  as dist, step02.sm_id as sm
+FROM step02, countway   
+ORDER BY step02.sm_id, ST_Distance(step02.geom, countway.geom)) as sub where step02.sm_id = sub.sm;
+### export table to shapefile
+pgsql2shp -f 'C:\gis\p2017\pmnewengland\data\step02.shp' -h localhost -u postgres -P postgres pmne "select * from step02"
+### STEP06 >> extract value to point using GDAL/OGR python library >> run script raster_to_point_value.py
+### make sure the script input are correct (raster path, step02 path, field name to be create)
+### make sure all raster tif are projected correctly
+### once this operation is completed you need to reload the step02.shp to postgis and named it step06
+shp2pgsql -c -D -I -s 102010 C:\gis\p2017\pmnewengland\data\step02.shp step06 | psql -d pmne -h localhost -U postgres
+### add two field and calculate values
+alter table step06 add column pctdvhif12 double precision;
+alter table step06 add column pctdvlof12 double precision;
+
+update step06 set pctdvhif12 = sub.res from (select (dvhi/144)*100 as res, step06.sm_id as sm from step06
+                                            order by step06.sm_id) as sub where step06.sm_id = sub.sm ;
+
+update step06 set pctdvlof12 = sub.res from (select (dvlo/144)*100 as res, step06.sm_id as sm from step06
+                                            order by step06.sm_id) as sub where step06.sm_id = sub.sm ;                                            
+
+### STEP 11 create two table buffer and carry all attributes
+create table step01_50m as (select st_buffer(step01.geom, 50), * from step01)
+create table step01_100m as (select st_buffer(step01.geom, 100), * from step01)
+
+### spatial join STEP 12 (is not clear what is the goal of this step)
+### ??????????????????????????????????????
+create table step10 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, rtaline.rtaid as rtaid
+	FROM step06 a
+		LEFT JOIN rta rtaline ON ST_DWithin(a.geom, rtaline.geom, 100000)
+	ORDER BY a.sm_id, ST_Distance(a.geom, rtaline.geom)); 	
+### STEP 13 Calculate Distance
+alter table step06 add column dsttrkrt_m double precision;
+
+update step06 set dsttrkrt_m = sub.dist from (SELECT DISTINCT ON (step06.sm_id) ST_Distance(step06.geom, truck.geom)  as dist, step06.sm_id as sm
+FROM step06, truck   
+ORDER BY step06.sm_id, ST_Distance(step06.geom, truck.geom)) as sub where step06.sm_id = sub.sm;
