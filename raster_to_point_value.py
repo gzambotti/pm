@@ -2,9 +2,7 @@ from osgeo import gdal,ogr
 import struct
 
 def extractvalues(pathImage, pathAddresses, fieldName):
-    #src_filename = r'C:/Temp/elev_clip1.tif'
-    #shp_filename = r'C:/Temp/addresses1.shp'
-
+    
     src_filename = pathImage
     shp_filename = pathAddresses
 
@@ -12,9 +10,11 @@ def extractvalues(pathImage, pathAddresses, fieldName):
     src_ds=gdal.Open(src_filename) 
     gt=src_ds.GetGeoTransform()
     rb=src_ds.GetRasterBand(1)
-
+    # in order to write to a shapefile we need to add 1
     ds=ogr.Open(shp_filename,1)
-    lyr=ds.GetLayer()
+    lyr=ds.GetLayer()    
+    # create a new field >> ogr.OFTReal (Double Precision floating point)
+    lyr.CreateField(ogr.FieldDefn(fieldName, ogr.OFTReal))
     for feat in lyr:
         geom = feat.GetGeometryRef()
         mx,my=geom.GetX(), geom.GetY()  #coord in map units
@@ -32,4 +32,11 @@ def extractvalues(pathImage, pathAddresses, fieldName):
     
 
 if __name__ == '__main__':
-    extractvalues('C:/Temp/elev_clip1.tif','C:/Temp/addresses1.shp', 'foo')
+    # extract elevation
+    extractvalues(r'C:/Temp/ele.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'elevation')
+    # STEP 07-08 >> extract dvhi_1km values
+    extractvalues(r'C:/Temp/dvhi.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'dvhi')
+    # STEP 09 >> extract dvlo_1km values
+    extractvalues(r'C:/Temp/dvlo.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'dvlo')
+    # STEP 10 >> extract imp_1km values
+    extractvalues(r'C:/Temp/imp.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'imp')
