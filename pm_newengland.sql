@@ -28,8 +28,12 @@ shp2pgsql -c -D -I -s  4326 C:\gis\p2017\pmnewengland\data\countway.shp countway
 # import RTA_Albers.shp (this dataset was reduce in size for better performace)
 # make sure the shapefile does not have Z and M dimesnion enabled
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\12_25\RTA_Albers.shp rta | psql -d pmne -h localhost -U postgres
-# import truckroutes (why all use if it's just newengland)
+# import truckroutes (why use all US if it's just newengland)
 shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\truck.shp truck | psql -d pmne -h localhost -U postgres
+# import  pbl2003 (why use all US if it's just newengland)
+shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
+# import stations
+shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
 
 # convert layers coordinate system
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
@@ -38,8 +42,9 @@ ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102010)
 ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
 ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
-
+ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);	
+ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 # spatial join STEP 01 
 # requires specify addresses.geom and all fields
 create table step01 as (SELECT sm_id, addresses.geom FROM addresses, area WHERE ST_Within(addresses.geom, area.geom));
@@ -88,9 +93,29 @@ create table step10 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, rtaline.rt
 	FROM step06 a
 		LEFT JOIN rta rtaline ON ST_DWithin(a.geom, rtaline.geom, 100000)
 	ORDER BY a.sm_id, ST_Distance(a.geom, rtaline.geom)); 	
-### STEP 13 Calculate Distance
+### STEP 14 Calculate Distance
 alter table step06 add column dsttrkrt_m double precision;
 
 update step06 set dsttrkrt_m = sub.dist from (SELECT DISTINCT ON (step06.sm_id) ST_Distance(step06.geom, truck.geom)  as dist, step06.sm_id as sm
 FROM step06, truck   
 ORDER BY step06.sm_id, ST_Distance(step06.geom, truck.geom)) as sub where step06.sm_id = sub.sm;
+
+### STEP 13 Spatial Join with pbl2003
+create table step12 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, pbl.pbl00id
+	FROM step06 a
+		LEFT JOIN pbl2003 pbl ON ST_DWithin(a.geom, pbl.geom, 35000)
+	ORDER BY a.sm_id, ST_Distance(a.geom, pbl.geom));
+
+### STEP 18 NEAR select the 20 nearest stations
+
+SELECT
+st.*, stp.gid, 
+ST_Distance(st.geom, stp.geom) AS distance
+FROM
+step06 AS st
+CROSS JOIN LATERAL
+(SELECT stations.gid, stations.geom
+FROM stations 
+ORDER BY
+st.geom <-> stations.geom
+LIMIT 20) AS stp  order by st.gid
