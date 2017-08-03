@@ -34,6 +34,10 @@ shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\truck.shp truck | psql
 shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
 # import stations
 shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
+# import ge10kadt
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\ge10kadt.shp ge10kadt | psql -d pmne -h localhost -U postgres
+
+
 
 # convert layers coordinate system
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
@@ -45,6 +49,7 @@ ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST
 ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);	
 ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
+ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 # spatial join STEP 01 
 # requires specify addresses.geom and all fields
 create table step01 as (SELECT sm_id, addresses.geom FROM addresses, area WHERE ST_Within(addresses.geom, area.geom));
@@ -108,14 +113,13 @@ create table step12 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, pbl.pbl00i
 
 ### STEP 18 NEAR select the 20 nearest stations
 
-SELECT
-st.*, stp.gid, 
-ST_Distance(st.geom, stp.geom) AS distance
-FROM
-step06 AS st
-CROSS JOIN LATERAL
-(SELECT stations.gid, stations.geom
-FROM stations 
-ORDER BY
-st.geom <-> stations.geom
-LIMIT 20) AS stp  order by st.gid
+create table step18 as(
+SELECT st.geom, st.gid as step06ID, st.fips, stp.gid as stID, ST_Distance(st.geom, stp.geom) AS distance, ST_Azimuth(st.geom, stp.geom)/(2*pi())*360 as degAZ FROM
+step06 AS st CROSS JOIN LATERAL
+(SELECT stations.gid, stations.geom FROM stations ORDER BY st.geom <-> stations.geom LIMIT 20) AS stp  order by st.gid)
+
+### STEP21 -- why you need to grab AADT? What's AADT?
+create table step16 as (SELECT DISTINCT ON (a.sm_id) a.*, ge.aadt
+	FROM step12 a
+		LEFT JOIN ge10kadt ge ON ST_DWithin(a.geom, ge.geom, 10000)
+	ORDER BY a.sm_id, ST_Distance(a.geom, ge.geom));
