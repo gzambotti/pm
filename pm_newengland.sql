@@ -36,7 +36,8 @@ shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | ps
 shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
 # import ge10kadt
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\ge10kadt.shp ge10kadt | psql -d pmne -h localhost -U postgres
-
+# import hmps13
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hmps13.shp hmps13 | psql -d pmne -h localhost -U postgres
 
 
 # convert layers coordinate system
@@ -50,6 +51,7 @@ ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING 
 ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);	
 ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE hmps13 ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 # spatial join STEP 01 
 # requires specify addresses.geom and all fields
 create table step01 as (SELECT sm_id, addresses.geom FROM addresses, area WHERE ST_Within(addresses.geom, area.geom));
