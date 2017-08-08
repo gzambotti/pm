@@ -39,6 +39,10 @@ shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\ge10kadt.shp ge10kadt 
 # import hmps13
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hmps13.shp hmps13 | psql -d pmne -h localhost -U postgres
 
+# import hmps1rd
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpms1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
 
 # convert layers coordinate system
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
@@ -52,6 +56,15 @@ ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Trans
 ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE hmps13 ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE hpms1rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE hpms2rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+ALTER TABLE hpms3rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+
+## create spatial index for all tables
+CREATE INDEX step18_gix ON step18 USING GIST (geom);
+CREATE INDEX hpms1rd_gix ON hpms1rd USING GIST (geom);
+CREATE INDEX hpms2rd_gix ON hpms2rd USING GIST (geom);
+CREATE INDEX hpms3rd_gix ON hpms3rd USING GIST (geom);
 # spatial join STEP 01 
 # requires specify addresses.geom and all fields
 create table step01 as (SELECT sm_id, addresses.geom FROM addresses, area WHERE ST_Within(addresses.geom, area.geom));
@@ -81,8 +94,7 @@ pgsql2shp -f 'C:\gis\p2017\pmnewengland\data\step02.shp' -h localhost -u postgre
 ### once this operation is completed you need to reload the step02.shp to postgis and named it step06
 shp2pgsql -c -D -I -s 102010 C:\gis\p2017\pmnewengland\data\step02.shp step06 | psql -d pmne -h localhost -U postgres
 ### add two field and calculate values
-alter table step06 add column pctdvhif12 double precision;
-alter table step06 add column pctdvlof12 double precision;
+alter table step06 add column pctdvhif12 double precision, add column pctdvlof12 double precision;
 
 update step06 set pctdvhif12 = sub.res from (select (dvhi/144)*100 as res, step06.sm_id as sm from step06
                                             order by step06.sm_id) as sub where step06.sm_id = sub.sm ;
@@ -91,8 +103,9 @@ update step06 set pctdvlof12 = sub.res from (select (dvlo/144)*100 as res, step0
                                             order by step06.sm_id) as sub where step06.sm_id = sub.sm ;                                            
 
 ### STEP 11 create two table buffer and carry all attributes
-create table step01_50m as (select st_buffer(step01.geom, 50), * from step01)
-create table step01_100m as (select st_buffer(step01.geom, 100), * from step01)
+### this two step can be done later on the fly
+#create table step01_50m as (select st_buffer(step01.geom, 50), * from step01)
+#create table step01_100m as (select st_buffer(step01.geom, 100), * from step01)
 
 ### spatial join STEP 12 (is not clear what is the goal of this step)
 ### ??????????????????????????????????????
@@ -125,3 +138,37 @@ create table step16 as (SELECT DISTINCT ON (a.sm_id) a.*, ge.aadt
 	FROM step12 a
 		LEFT JOIN ge10kadt ge ON ST_DWithin(a.geom, ge.geom, 10000)
 	ORDER BY a.sm_id, ST_Distance(a.geom, ge.geom));
+
+### STEP 23
+create table step23 as (SELECT hmps13a.route_id, buff.sm_id, ST_Intersection(st_buffer(buff.geom, 100), hmps13a.geom)
+FROM hmps13, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 100), hmps13a.geom))
+
+### STEP 24 - measure the distance
+alter table step18 add column hpms1rd_dis double precision, add column hpms2rd_dis double precision, add column hpms3rd_dis double precision;
+
+update step10 set  hpms1rd_dis = sub.dist from (
+SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms1rd.geom)  as dist, step10.sm_id as sm
+FROM step10, hpms1rd   
+ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms1rd.geom)
+) as sub where step10.sm_id = sub.sm;
+
+
+update step10 set  hpms2rd_dis = sub.dist from (
+SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms2rd.geom)  as dist, step10.sm_id as sm
+FROM step10, hpms2rd   
+ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms2rd.geom)
+) as sub where step10.sm_id = sub.sm;
+
+update step10 set  hpms3rd_dis = sub.dist from (
+SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms3rd.geom)  as dist, step10.sm_id as sm
+FROM step10, hpms3rd   
+ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms3rd.geom)
+) as sub where step10.sm_id = sub.sm;
+
+### STEP25 - calculate length of bus route within 50 and 100 m buffers
+
+create table step25_50m as (SELECT rta.rtaid, buff.sm_id, ST_length(ST_Intersection(st_buffer(buff.geom, 50), rta.geom)) as len, ST_Intersection(st_buffer(buff.geom, 50), rta.geom)
+FROM rta, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 50), rta.geom))
+
+create table step25_100m as (SELECT rta.rtaid, buff.sm_id, ST_length(ST_Intersection(st_buffer(buff.geom, 100), rta.geom)) as len, ST_Intersection(st_buffer(buff.geom, 100), rta.geom)
+FROM rta, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 100), rta.geom))
