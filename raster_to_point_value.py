@@ -1,3 +1,16 @@
+# A way to run the python script is to use conda
+# To install conda visit this website (https://conda.io/docs/index.html)
+# Once conda is install successfully you can create a conda enviroment
+# and then install gdal. Below is the conda comands:
+
+# 1) conda create -n pmne python=3.6
+# 2) source activate pmne (this can be different if you use windows OS)
+# 3) conda install -c conda-forge gdal
+# 4) conda list
+# 5) python /path/raster_to_point_value.py (to run the script)
+
+
+
 from osgeo import gdal,ogr
 import struct
 
