@@ -2,7 +2,8 @@
 -- Fill in 'path','username', 'passwd' with the appropriate value
 -- where username is the db username, and passwd is the db password
 -- SRID: 4326 WGS 1984
--- SRID: ESI 102010 North America Equidistant Conic
+-- SRID: ESRI 102010 North America Equidistant Conic
+-- SRID: ESRI 102003 USA Contiguous Albers Equal Area Conic
 -- Check the coordinate system of the shapefile to import and change
 -- the shp2pgsql accordingly
 
@@ -12,8 +13,19 @@ create extension postgis;
 
 # add a new projection coordinate system
 # North America Equidistant Conic (https://epsg.io/102010#)
-INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) values ( 102010, 'ESRI', 102010, '+proj=eqdc +lat_0=40 +lon_0=-96 +lat_1=20 +lat_2=60 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', 'PROJCS["North_America_Equidistant_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Equidistant_Conic"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["Longitude_Of_Center",-96],PARAMETER["Standard_Parallel_1",20],PARAMETER["Standard_Parallel_2",60],PARAMETER["Latitude_Of_Center",40],UNIT["Meter",1],AUTHORITY["EPSG","102010"]]');
+# INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) values ( 102010, 'ESRI', 102010, '+proj=eqdc +lat_0=40 +lon_0=-96 +lat_1=20 +lat_2=60 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', 'PROJCS["North_America_Equidistant_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Equidistant_Conic"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["Longitude_Of_Center",-96],PARAMETER["Standard_Parallel_1",20],PARAMETER["Standard_Parallel_2",60],PARAMETER["Latitude_Of_Center",40],UNIT["Meter",1],AUTHORITY["EPSG","102010"]]');
 
+# USA Contiguous Albers Equal Area Conic version (https://epsg.io/102003#)
+INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) values ( 102003, 'ESRI', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');
+
+# import CVS table
+CREATE TABLE addresses(gid serial NOT NULL, smid character varying, lat double precision, lng double precision);
+COPY addresses from '//your_table_path/exampledata.csv' DELIMITERS ',' CSV header;
+update addresses set smid = trim(smid, '"')
+ALTER TABLE addresses add column geom geometry (Point, 4326);
+UPDATE addresses SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4326);
+ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
+CREATE INDEX addresses_gix ON addresses USING GIST (geom);
 #import all data necessary and conver them to ESRI:102010
 # import modelextent_1km to postgis
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\modelextent_1km.shp modelboundary | psql -d pmne -h localhost -U postgres
@@ -44,10 +56,12 @@ shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpms1rd.shp hpms1rd | 
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
 
+
+
+
 # convert layers coordinate system
-ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
-ALTER TABLE modelboundary ALTER COLUMN geom TYPE geometry(MultiPolygon,102010) USING ST_Transform(geom,102010);
-ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102010) USING ST_Transform(geom,102010);
+ALTER TABLE modelboundary ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
+ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
 ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
 ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
 ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
@@ -61,19 +75,22 @@ ALTER TABLE hpms2rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USIN
 ALTER TABLE hpms3rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 
 ## create spatial index for all tables
+CREATE INDEX modelboundary_gix ON modelboundary USING GIST (geom);
 CREATE INDEX step18_gix ON step18 USING GIST (geom);
 CREATE INDEX hpms1rd_gix ON hpms1rd USING GIST (geom);
 CREATE INDEX hpms2rd_gix ON hpms2rd USING GIST (geom);
 CREATE INDEX hpms3rd_gix ON hpms3rd USING GIST (geom);
-# spatial join STEP 01 
+
+# spatial join STEP 01 -- verify that all points are within the modelextent1km
+# only the points within the modelextent1km boundry will be included in step01 table
 # requires specify addresses.geom and all fields
-create table step01 as (SELECT sm_id, addresses.geom FROM addresses, area WHERE ST_Within(addresses.geom, area.geom));
+create table step01 as (SELECT smid, addresses.geom, lat, lng FROM addresses, modelextent1km WHERE ST_Within(addresses.geom, modelextent1km.geom));
 
 # spatial join STEP 02
-create table step02 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, bg.fips
+create table step02 as (SELECT DISTINCT ON (a.smid) a.smid, a.geom, a.lat, a.lng, bg.fips, bg.objectid, bg.pop00_sqmi
 	FROM step01 a
 		LEFT JOIN midatlanewengbg bg ON ST_DWithin(a.geom, bg.geom, 1000)
-	ORDER BY a.sm_id, ST_Distance(a.geom, bg.geom));
+	ORDER BY a.smid, ST_Distance(a.geom, bg.geom));
 
 #### STEP 03 >> Calculate the distance to the coast line
 alter table step02 add column coastdis double precision;
