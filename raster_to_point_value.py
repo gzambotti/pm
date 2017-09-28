@@ -46,10 +46,10 @@ def extractvalues(pathImage, pathAddresses, fieldName):
 
 if __name__ == '__main__':
     # extract elevation
-    extractvalues(r'C:/Temp/ele.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'elevation')
+    extractvalues(r'\\path\\elev_clipUS.tif', r'\\path\\step02.shp', 'elev_m')
     # STEP 07-08 >> extract dvhi_1km values
-    extractvalues(r'C:/Temp/dvhi.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'dvhi')
+    extractvalues(r'\\path\\dvhi.tif', r'\\path\\step02.shp', 'dvhi_1km')
     # STEP 09 >> extract dvlo_1km values
-    extractvalues(r'C:/Temp/dvlo.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'dvlo')
+    extractvalues(r'\\path\\dvlo.tif', r'\\path\\step02.shp', 'dvlo_cable')
     # STEP 10 >> extract imp_1km values
-    extractvalues(r'C:/Temp/imp.tif',r'C:\gis\p2017\pmnewengland\data\step02.shp', 'imp')
+    extractvalues(r'\\path\\imp_1kmus', r'\\path\\step02.shp', 'pctimpfs_1')

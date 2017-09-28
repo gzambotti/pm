@@ -18,7 +18,7 @@ create extension postgis;
 # USA Contiguous Albers Equal Area Conic version (https://epsg.io/102003#)
 INSERT into spatial_ref_sys (srid, auth_name, auth_srid, proj4text, srtext) values ( 102003, 'ESRI', 102003, '+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",GEOGCS["GCS_North_American_1983",DATUM["North_American_Datum_1983",SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["False_Easting",0],PARAMETER["False_Northing",0],PARAMETER["longitude_of_center",-96],PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],PARAMETER["latitude_of_center",37.5],UNIT["Meter",1],AUTHORITY["EPSG","102003"]]');
 
-# import CVS table
+# import address CVS table and create a postgis table
 CREATE TABLE addresses(gid serial NOT NULL, smid character varying, lat double precision, lng double precision);
 COPY addresses from '//your_table_path/exampledata.csv' DELIMITERS ',' CSV header;
 update addresses set smid = trim(smid, '"')
@@ -26,17 +26,18 @@ ALTER TABLE addresses add column geom geometry (Point, 4326);
 UPDATE addresses SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4326);
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
 CREATE INDEX addresses_gix ON addresses USING GIST (geom);
-#import all data necessary and conver them to ESRI:102010
+
+# import all data necessary and convert them to ESRI:102003
 # import modelextent_1km to postgis
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\modelextent_1km.shp modelboundary | psql -d pmne -h localhost -U postgres
-# import address to postgis
-shp2pgsql -c -D -I -s  4269 C:\gis\p2017\pmnewengland\data\addresses.shp addresses | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\modelextent_1km.shp modelboundary | psql -d pmne -h localhost -U postgres
 # import midatlanewengbg00_albers.shp (this dataset was reduce in size for better performace)
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\midatlanewengbg.shp midatlanewengbg | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\midatlanewengbg00_subset.shp midatlanewengbg | psql -d pmne -h localhost -U postgres
 # import coast line to postgis
-shp2pgsql -c -D -I -s  4269 C:\gis\p2017\pmnewengland\03_Coast/Coast.shp addresses | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s  4269 \\path\Coast.shp addresses | psql -d pmne -h localhost -U postgres
 # import countway to postgis
-shp2pgsql -c -D -I -s  4326 C:\gis\p2017\pmnewengland\data\countway.shp countway | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s  5070 \\path\countway_albers.shp countway | psql -d pmne -h localhost -U postgres
+# import allregions (new england regions shapefile) to postgis
+shp2pgsql -c -D -I -s  5070 \\path\allregions_albers.shp allregions | psql -d pmne -h localhost -U postgres
 # import RTA_Albers.shp (this dataset was reduce in size for better performace)
 # make sure the shapefile does not have Z and M dimesnion enabled
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\12_25\RTA_Albers.shp rta | psql -d pmne -h localhost -U postgres
@@ -59,11 +60,12 @@ shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | 
 
 
 
-# convert layers coordinate system
+# convert layers coordinate system to ESI 102003
 ALTER TABLE modelboundary ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
 ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
-ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);	
-ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
+ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);	
+ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
+ALTER TABLE allregions ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
 ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);	
@@ -76,6 +78,10 @@ ALTER TABLE hpms3rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USIN
 
 ## create spatial index for all tables
 CREATE INDEX modelboundary_gix ON modelboundary USING GIST (geom);
+CREATE INDEX midatlanewengbg_gix ON midatlanewengbg USING GIST (geom);
+CREATE INDEX coast_gix ON coast USING GIST (geom);
+CREATE INDEX countway_gix ON countway USING GIST (geom);
+CREATE INDEX allregions_gix ON allregions USING GIST (geom);
 CREATE INDEX step18_gix ON step18 USING GIST (geom);
 CREATE INDEX hpms1rd_gix ON hpms1rd USING GIST (geom);
 CREATE INDEX hpms2rd_gix ON hpms2rd USING GIST (geom);
@@ -86,38 +92,50 @@ CREATE INDEX hpms3rd_gix ON hpms3rd USING GIST (geom);
 # requires specify addresses.geom and all fields
 create table step01 as (SELECT smid, addresses.geom, lat, lng FROM addresses, modelextent1km WHERE ST_Within(addresses.geom, modelextent1km.geom));
 
-# spatial join STEP 02
-create table step02 as (SELECT DISTINCT ON (a.smid) a.smid, a.geom, a.lat, a.lng, bg.fips, bg.objectid, bg.pop00_sqmi
+# spatial join STEP 02 >> grab data from blockgroup dataset
+create table step02 as (SELECT DISTINCT ON (a.smid) a.smid, a.geom, a.lat, a.lng, bg.fips, bg.pop_sqkm
 	FROM step01 a
 		LEFT JOIN midatlanewengbg bg ON ST_DWithin(a.geom, bg.geom, 1000)
 	ORDER BY a.smid, ST_Distance(a.geom, bg.geom));
 
 #### STEP 03 >> Calculate the distance to the coast line
 alter table step02 add column coastdis double precision;
-update step02 set coastdis = sub.dist from (SELECT DISTINCT ON (step02.sm_id) ST_Distance(step02.geom, coast.geom)  as dist, step02.sm_id as sm
+
+update step02 set coastdis = sub.dist from (SELECT DISTINCT ON (step02.smid) ST_Distance(step02.geom, coast.geom)  as dist, step02.smid as sm
 FROM step02, coast   
-ORDER BY step02.sm_id, ST_Distance(step02.geom, coast.geom)) as sub where step02.sm_id = sub.sm;
+ORDER BY step02.smid, ST_Distance(step02.geom, coast.geom)) as sub where step02.smid = sub.sm;
 
 ### STEP 04 >> Calculate the distance to the countyway
-alter table step02 add column countwaydis double precision;
-update step02 set countwaydis = sub.dist from (SELECT DISTINCT ON (step02.sm_id) ST_Distance(step02.geom, countway.geom)  as dist, step02.sm_id as sm
+alter table step02 add column countway_m double precision;
+
+update step02 set countway_m = sub.dist from (SELECT DISTINCT ON (step02.smid) ST_Distance(step02.geom, countway.geom)  as dist, step02.smid as sm
 FROM step02, countway   
-ORDER BY step02.sm_id, ST_Distance(step02.geom, countway.geom)) as sub where step02.sm_id = sub.sm;
-### export table to shapefile
-pgsql2shp -f 'C:\gis\p2017\pmnewengland\data\step02.shp' -h localhost -u postgres -P postgres pmne "select * from step02"
-### STEP06 >> extract value to point using GDAL/OGR python library >> run script raster_to_point_value.py
-### make sure the script input are correct (raster path, step02 path, field name to be create)
-### make sure all raster tif are projected correctly
+ORDER BY step02.smid, ST_Distance(step02.geom, countway.geom)) as sub where step02.smid = sub.sm;
+
+# spatial join STEP 05 >> grab a field (modelregio) from allregions dataset
+alter table step02 add column modelreg character varying;
+
+update step02 set modelreg = sub.modelregio from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.modelregio
+	FROM step02 a
+		LEFT JOIN allregions bg ON ST_Intersects(a.geom, bg.geom)) as sub where step02.smid = sub.smid;
+
+
+### export step02 postgis table to shapefile (step02.shp) -- set the output path
+pgsql2shp -f "C:\\gis\\p2017\\pmnewengland\\data\\double_check\\step02.shp" -h localhost -u postgres -P postgres pmne "select * from step02"
+### STEP06-10 >> extract value to point using GDAL/OGR python library >> run script raster_to_point_value.py
+### make sure the script input are correct (raster path, step02 path, and the fields name to be create)
+### make sure all raster tif are projected correctly (ESRI 102003)
 ### once this operation is completed you need to reload the step02.shp to postgis and named it step06
-shp2pgsql -c -D -I -s 102010 C:\gis\p2017\pmnewengland\data\step02.shp step06 | psql -d pmne -h localhost -U postgres
-### add two field and calculate values
-alter table step06 add column pctdvhif12 double precision, add column pctdvlof12 double precision;
+shp2pgsql -c -D -I -s 102003 \\path\\step02.shp step11 | psql -d pmne -h localhost -U postgres
+### complete steps 06-10. Add two fields and calculate values
+alter table step11 add column pctdvhif12 double precision, add column pctdvlof12 double precision;
 
-update step06 set pctdvhif12 = sub.res from (select (dvhi/144)*100 as res, step06.sm_id as sm from step06
-                                            order by step06.sm_id) as sub where step06.sm_id = sub.sm ;
+update step11 set pctdvhif12 = sub.res from (select (dvhi_1km/144)*100 as res, step11.smid as sm from step11
+                                            order by step11.smid) as sub where step11.smid = sub.smid ;
 
-update step06 set pctdvlof12 = sub.res from (select (dvlo/144)*100 as res, step06.sm_id as sm from step06
-                                            order by step06.sm_id) as sub where step06.sm_id = sub.sm ;                                            
+update step11 set pctdvlof12 = sub.res from (select (dvlo_cable/144)*100 as res, step11.smid as sm from step11
+                                            order by step11.smid) as sub where step11.smid = sub.smid;                                            
 
 ### STEP 11 create two table buffer and carry all attributes
 ### this two step can be done later on the fly
