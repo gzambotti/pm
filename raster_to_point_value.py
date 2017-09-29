@@ -48,8 +48,8 @@ if __name__ == '__main__':
     # extract elevation
     extractvalues(r'\\path\\elev_clipUS.tif', r'\\path\\step02.shp', 'elev_m')
     # STEP 07-08 >> extract dvhi_1km values
-    extractvalues(r'\\path\\dvhi.tif', r'\\path\\step02.shp', 'dvhi_1km')
+    extractvalues(r'\\path\\dvhi_1kmus', r'\\path\\step02.shp', 'dvhi_1km')
     # STEP 09 >> extract dvlo_1km values
-    extractvalues(r'\\path\\dvlo.tif', r'\\path\\step02.shp', 'dvlo_cable')
+    extractvalues(r'\\path\\dvlo_1kmus', r'\\path\\step02.shp', 'dvlo_cable')
     # STEP 10 >> extract imp_1km values
     extractvalues(r'\\path\\imp_1kmus', r'\\path\\step02.shp', 'pctimpfs_1')

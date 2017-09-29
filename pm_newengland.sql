@@ -38,15 +38,14 @@ shp2pgsql -c -D -I -s  4269 \\path\Coast.shp addresses | psql -d pmne -h localho
 shp2pgsql -c -D -I -s  5070 \\path\countway_albers.shp countway | psql -d pmne -h localhost -U postgres
 # import allregions (new england regions shapefile) to postgis
 shp2pgsql -c -D -I -s  5070 \\path\allregions_albers.shp allregions | psql -d pmne -h localhost -U postgres
-# import RTA_Albers.shp (this dataset was reduce in size for better performace)
-# make sure the shapefile does not have Z and M dimesnion enabled
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\12_25\RTA_Albers.shp rta | psql -d pmne -h localhost -U postgres
-# import truckroutes (why use all US if it's just newengland)
-shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\truck.shp truck | psql -d pmne -h localhost -U postgres
-# import  pbl2003 (why use all US if it's just newengland)
-shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
+# import RTA_red.shp (this dataset was reduce in size for better performace)
+shp2pgsql -c -D -I -s 5070 \\path\RTA_red.shp rta | psql -d pmne -h localhost -U postgres
+# import truckroutes
+shp2pgsql -c -D -I -s 5070 \\path\truckrtes_clip.shp truck | psql -d pmne -h localhost -U postgres
+# import  pbl2003 
+shp2pgsql -c -D -I -s 5070 \\path\pbl2003.shp pbl2003 | psql -d pmne -h localhost -U postgres
 # import stations
-shp2pgsql -c -D -I -s 4326 C:\gis\p2017\pmnewengland\data\pbl2003.shp truck | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\stations_clip.shp stations | psql -d pmne -h localhost -U postgres
 # import ge10kadt
 shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\ge10kadt.shp ge10kadt | psql -d pmne -h localhost -U postgres
 # import hmps13
@@ -66,11 +65,16 @@ ALTER TABLE midatlanewengbg ALTER COLUMN geom TYPE geometry(MultiPolygon,102003)
 ALTER TABLE coast ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);	
 ALTER TABLE countway ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
 ALTER TABLE allregions ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
-ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);	
-ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102010) USING ST_Transform(geom,102010);
-ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
+# disable Z and M dimension
+# Avoid this ERROR: Geometry has Z dimension but column does not
+# Avoid this ERROR: Geometry has M dimension but column does not
+ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString) USING ST_Force2D(geom);
+ALTER TABLE rta ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);	
+ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
+ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+
 ALTER TABLE hmps13 ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE hpms1rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
 ALTER TABLE hpms2rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
@@ -82,7 +86,12 @@ CREATE INDEX midatlanewengbg_gix ON midatlanewengbg USING GIST (geom);
 CREATE INDEX coast_gix ON coast USING GIST (geom);
 CREATE INDEX countway_gix ON countway USING GIST (geom);
 CREATE INDEX allregions_gix ON allregions USING GIST (geom);
-CREATE INDEX step18_gix ON step18 USING GIST (geom);
+CREATE INDEX rta_gix ON rta USING GIST (geom);
+CREATE INDEX truck_gix ON truck USING GIST (geom);
+CREATE INDEX pbl2003_gix ON pbl2003 USING GIST (geom);
+CREATE INDEX stations_gix ON stations USING GIST (geom);
+CREATE INDEX ge10kadt_gix ON ge10kadt USING GIST (geom);
+
 CREATE INDEX hpms1rd_gix ON hpms1rd USING GIST (geom);
 CREATE INDEX hpms2rd_gix ON hpms2rd USING GIST (geom);
 CREATE INDEX hpms3rd_gix ON hpms3rd USING GIST (geom);
@@ -142,37 +151,42 @@ update step11 set pctdvlof12 = sub.res from (select (dvlo_cable/144)*100 as res,
 #create table step01_50m as (select st_buffer(step01.geom, 50), * from step01)
 #create table step01_100m as (select st_buffer(step01.geom, 100), * from step01)
 
-### spatial join STEP 12 (is not clear what is the goal of this step)
-### ??????????????????????????????????????
-create table step10 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, rtaline.rtaid as rtaid
-	FROM step06 a
-		LEFT JOIN rta rtaline ON ST_DWithin(a.geom, rtaline.geom, 100000)
-	ORDER BY a.sm_id, ST_Distance(a.geom, rtaline.geom)); 	
-### STEP 14 Calculate Distance
-alter table step06 add column dsttrkrt_m double precision;
+### STEP 12 >> Calculate the distance to nearest RTA, and grab RTA_flag values 
+alter table step11 add column rta_flag int, add column disttorta_m double precision;
 
-update step06 set dsttrkrt_m = sub.dist from (SELECT DISTINCT ON (step06.sm_id) ST_Distance(step06.geom, truck.geom)  as dist, step06.sm_id as sm
-FROM step06, truck   
-ORDER BY step06.sm_id, ST_Distance(step06.geom, truck.geom)) as sub where step06.sm_id = sub.sm;
+update step11 set rta_flag = sub.rta_flag, disttorta_m = sub.rta_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.rta_flag, ST_Distance(a.geom, bg.geom) as rta_dis
+	FROM step11 a
+		LEFT JOIN rta bg ON ST_DWithin(a.geom, bg.geom, 100000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
-### STEP 13 Spatial Join with pbl2003
-create table step12 as (SELECT DISTINCT ON (a.sm_id) a.sm_id, a.geom, pbl.pbl00id
-	FROM step06 a
-		LEFT JOIN pbl2003 pbl ON ST_DWithin(a.geom, pbl.geom, 35000)
-	ORDER BY a.sm_id, ST_Distance(a.geom, pbl.geom));
+### STEP 14 Calculate the distance to the nearest truck route
+alter table step11 add column dsttrkrt_m double precision;
 
-### STEP 18 NEAR select the 20 nearest stations
+update step11 set dsttrkrt_m = sub.dist from (SELECT DISTINCT ON (step11.smid) ST_Distance(step11.geom, truck.geom)  as dist, step11.smid as sm
+FROM step11, truck   
+ORDER BY step11.smid, ST_Distance(step11.geom, truck.geom)) as sub where step11.smid = sub.sm;
 
+### STEP 16 -- spatial join with pbl2003 >> grab a field (pblid) from pbl2003 dataset
+alter table step11 add column pblid character varying;
+
+update step11 set pblid = sub.pblid from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.pblid
+	FROM step11 a
+		LEFT JOIN pbl2003 bg ON ST_DWithin(a.geom, bg.geom, 35000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
+
+### STEP 18 -- NEAR select the 20 nearest stations
 create table step18 as(
-SELECT st.geom, st.gid as step06ID, st.fips, stp.gid as stID, ST_Distance(st.geom, stp.geom) AS distance, ST_Azimuth(st.geom, stp.geom)/(2*pi())*360 as degAZ FROM
-step06 AS st CROSS JOIN LATERAL
-(SELECT stations.gid, stations.geom FROM stations ORDER BY st.geom <-> stations.geom LIMIT 20) AS stp  order by st.gid)
+SELECT st.geom, st.smid as smid, st.lat as lat, st.lng as lng, stp.near_fid as near_fid, stp.usaf as usaf, stp.wban as wban, ST_Distance(st.geom, stp.geom) AS distance, ST_Azimuth(st.geom, stp.geom)/(2*pi())*360 as degAZ FROM
+step11 AS st CROSS JOIN LATERAL
+(SELECT stations.gid, stations.geom, stations.usaf, stations.wban, stations.near_fid FROM stations ORDER BY st.geom <-> stations.geom LIMIT 20) AS stp  order by st.gid)
 
-### STEP21 -- why you need to grab AADT? What's AADT?
-create table step16 as (SELECT DISTINCT ON (a.sm_id) a.*, ge.aadt
-	FROM step12 a
-		LEFT JOIN ge10kadt ge ON ST_DWithin(a.geom, ge.geom, 10000)
-	ORDER BY a.sm_id, ST_Distance(a.geom, ge.geom));
+### STEP21 -- Measure the disatance to ge10kadt, and grab AADT values
+alter table step11 add column aadt double precision, add column disttoge10k double precision;
+
+update step11 set aadt = sub.aadt, disttoge10k = sub.ge10k_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.aadt, ST_Distance(a.geom, bg.geom) as ge10k_dis
+	FROM step11 a
+		LEFT JOIN ge10kadt bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
 ### STEP 23
 create table step23 as (SELECT hmps13a.route_id, buff.sm_id, ST_Intersection(st_buffer(buff.geom, 100), hmps13a.geom)
