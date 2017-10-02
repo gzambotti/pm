@@ -278,20 +278,21 @@ SELECT DISTINCT ON (a.smid) a.smid, bg.LRSKEY, ST_Distance(a.geom, bg.geom) as m
 ### STEP 29
 alter table step11 add column w_area2k double precision, add column w_area10k double precision;
 
+## buffer 2 KM
 update step11 set w_area2k = sub.sum from(
 SELECT DISTINCT ON (buff.smid) buff.smid,  coalesce(sum(ST_Area(ST_Intersection(st_buffer(buff.geom, 2000), water.geom))), 0) as sum
 FROM step11 as buff left join water on ST_Intersects(st_buffer(buff.geom, 2000), water.geom) group by buff.smid)  as sub where step11.smid = sub.smid
 
-
-
-/*create table zarea as (SELECT buff.smid,  ST_Area(ST_Intersection(st_buffer(buff.geom, 2000), water.geom)) as sum
-FROM step11 as buff, water where ST_Intersects(st_buffer(buff.geom, 2000), water.geom))*/
+## buffer 10 KM
+update step11 set w_area10k = sub.sum from(
+SELECT DISTINCT ON (buff.smid) buff.smid,  coalesce(sum(ST_Area(ST_Intersection(st_buffer(buff.geom, 10000), water.geom))), 0) as sum
+FROM step11 as buff left join water on ST_Intersects(st_buffer(buff.geom, 10000), water.geom) group by buff.smid)  as sub where step11.smid = sub.smid
 
 ### STEP 30
-alter table step11 add column latwid double precision, add column lonwid double precision;
+alter table step11 add column latid double precision, add column lonid double precision;
 
-update step11 set latwid = sub.lat, disttombtabus = sub.lon from (
-SELECT DISTINCT ON (a.smid) a.smid, bg.lat, bg.lon
+update step11 set latid = sub.latid, lonid = sub.lonid from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.latid, bg.lonid
 	FROM step11 a
 		LEFT JOIN vwind bg ON ST_DWithin(a.geom, bg.geom, 35000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
