@@ -47,17 +47,25 @@ shp2pgsql -c -D -I -s 5070 \\path\pbl2003.shp pbl2003 | psql -d pmne -h localhos
 # import stations
 shp2pgsql -c -D -I -s 5070 \\path\stations_clip.shp stations | psql -d pmne -h localhost -U postgres
 # import ge10kadt
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\ge10kadt.shp ge10kadt | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\ge10kadt.shp ge10kadt | psql -d pmne -h localhost -U postgres
 # import hmps13
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hmps13.shp hmps13 | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\hmps13.shp hmps13 | psql -d pmne -h localhost -U postgres
 
 # import hmps1rd
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpms1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
-shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\data\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\hpms1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+shp2pgsql -c -D -I -s 5070 \\path\hpsm1rd.shp hpms1rd | psql -d pmne -h localhost -U postgres
+# import rail
+shp2pgsql -c -D -I -s 5070 \\path\Rail_red.shp rail | psql -d pmne -h localhost -U postgres
+# import mjrrd
+shp2pgsql -c -D -I -s 5070 \\path\mjrrd_red.shp mjrrd | psql -d pmne -h localhost -U postgres
+# import mbtabusroutes
+shp2pgsql -c -D -I -s 5070 \\path\mbta_red.shp mbtabusroutes | psql -d pmne -h localhost -U postgres
 
-
-
+# import waterbodies
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\29\water_bodies.shp water | psql -d pmne -h localhost -U postgres
+# import vwind
+shp2pgsql -c -D -I -s 5070 C:\gis\p2017\pmnewengland\30\vwind_modelextent.shp vwind | psql -d pmne -h localhost -U postgres
 
 # convert layers coordinate system to ESI 102003
 ALTER TABLE modelboundary ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
@@ -74,12 +82,19 @@ ALTER TABLE truck ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING 
 ALTER TABLE pbl2003 ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);	
 ALTER TABLE stations ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
 ALTER TABLE ge10kadt ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE hmps13 ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE hpms1rd ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE hpms2rd ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE hpms3rd ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE rail ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
 
-ALTER TABLE hmps13 ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE hpms1rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE hpms2rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-ALTER TABLE hpms3rd ALTER COLUMN geom TYPE geometry(MultiLineString,102010) USING ST_Transform(geom,102010);
-
+ALTER TABLE mjrrd ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+ALTER TABLE mbtabusroutes ALTER COLUMN geom TYPE geometry(MultiLineString,102003) USING ST_Transform(geom,102003);
+# water bodies
+ALTER TABLE water ALTER COLUMN geom TYPE geometry(MultiPolygon) USING ST_Force2D(geom);
+ALTER TABLE water ALTER COLUMN geom TYPE geometry(MultiPolygon,102003) USING ST_Transform(geom,102003);
+# vwind
+ALTER TABLE vwind ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
 ## create spatial index for all tables
 CREATE INDEX modelboundary_gix ON modelboundary USING GIST (geom);
 CREATE INDEX midatlanewengbg_gix ON midatlanewengbg USING GIST (geom);
@@ -91,10 +106,15 @@ CREATE INDEX truck_gix ON truck USING GIST (geom);
 CREATE INDEX pbl2003_gix ON pbl2003 USING GIST (geom);
 CREATE INDEX stations_gix ON stations USING GIST (geom);
 CREATE INDEX ge10kadt_gix ON ge10kadt USING GIST (geom);
-
+CREATE INDEX hmps13_gix ON hmps13 USING GIST (geom);
 CREATE INDEX hpms1rd_gix ON hpms1rd USING GIST (geom);
 CREATE INDEX hpms2rd_gix ON hpms2rd USING GIST (geom);
 CREATE INDEX hpms3rd_gix ON hpms3rd USING GIST (geom);
+CREATE INDEX rail_gix ON rail USING GIST (geom);
+CREATE INDEX mjrrd_gix ON mjrrd USING GIST (geom);
+CREATE INDEX mbtabusroutes_gix ON mbtabusroutes USING GIST (geom);
+CREATE INDEX water_gix ON water USING GIST (geom);
+CREATE INDEX vwind_gix ON vwind USING GIST (geom);
 
 # spatial join STEP 01 -- verify that all points are within the modelextent1km
 # only the points within the modelextent1km boundry will be included in step01 table
@@ -188,36 +208,91 @@ SELECT DISTINCT ON (a.smid) a.smid, bg.aadt, ST_Distance(a.geom, bg.geom) as ge1
 	FROM step11 a
 		LEFT JOIN ge10kadt bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
-### STEP 23
-create table step23 as (SELECT hmps13a.route_id, buff.sm_id, ST_Intersection(st_buffer(buff.geom, 100), hmps13a.geom)
-FROM hmps13, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 100), hmps13a.geom))
+### STEP 23 >> Clip polyline within a buffer zone and sum the length of all segment within that buffer.
+### The result sum will be added to the step11   
+### add the column field (change the name field as you need)
 
-### STEP 24 - measure the distance
-alter table step18 add column hpms1rd_dis double precision, add column hpms2rd_dis double precision, add column hpms3rd_dis double precision;
+alter table step11 add column hmps13_len100 double precision;
 
-update step10 set  hpms1rd_dis = sub.dist from (
-SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms1rd.geom)  as dist, step10.sm_id as sm
-FROM step10, hpms1rd   
-ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms1rd.geom)
-) as sub where step10.sm_id = sub.sm;
+### change the query according to the buffer, and layer you need to use.
+
+update step11 set hmps13_len100 = sub.sum from (
+SELECT DISTINCT ON (buff.smid) buff.smid,  coalesce(sum(ST_Length(ST_Intersection(st_buffer(buff.geom, 100), hmps13.geom))), 0) as sum
+FROM step11 as buff left join hmps13 on ST_Intersects(st_buffer(buff.geom, 100), hmps13.geom) group by buff.smid) as sub where step11.smid = sub.smid
+
+### STEP 24 - Calculates Distance to 3 different road types
+alter table step11 add column dist1rd double precision, add column dist2rd double precision, add column dist3rd double precision;
+
+update step11 set  dist1rd = sub.dist from (
+SELECT DISTINCT ON (step11.smid) ST_Distance(step11.geom, hpms1rd.geom)  as dist, step11.smid as sm
+FROM step11, hpms1rd   
+ORDER BY step11.smid, ST_Distance(step11.geom, hpms1rd.geom)
+) as sub where step11.smid = sub.sm;
 
 
-update step10 set  hpms2rd_dis = sub.dist from (
-SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms2rd.geom)  as dist, step10.sm_id as sm
-FROM step10, hpms2rd   
-ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms2rd.geom)
-) as sub where step10.sm_id = sub.sm;
+update step11 set  dist2rd = sub.dist from (
+SELECT DISTINCT ON (step11.smid) ST_Distance(step11.geom, hpms2rd.geom)  as dist, step11.smid as sm
+FROM step11, hpms2rd   
+ORDER BY step11.smid, ST_Distance(step11.geom, hpms2rd.geom)
+) as sub where step11.smid = sub.sm;
 
-update step10 set  hpms3rd_dis = sub.dist from (
-SELECT DISTINCT ON (step10.sm_id) ST_Distance(step10.geom, hpms3rd.geom)  as dist, step10.sm_id as sm
-FROM step10, hpms3rd   
-ORDER BY step10.sm_id, ST_Distance(step10.geom, hpms3rd.geom)
-) as sub where step10.sm_id = sub.sm;
+update step11 set  dist3rd = sub.dist from (
+SELECT DISTINCT ON (step11.smid) ST_Distance(step11.geom, hpms3rd.geom)  as dist, step11.smid as sm
+FROM step11, hpms3rd   
+ORDER BY step11.smid, ST_Distance(step11.geom, hpms3rd.geom)
+) as sub where step11.smid = sub.sm;
 
 ### STEP25 - calculate length of bus route within 50 and 100 m buffers
+### to do it looks similar to the buffer one
 
 create table step25_50m as (SELECT rta.rtaid, buff.sm_id, ST_length(ST_Intersection(st_buffer(buff.geom, 50), rta.geom)) as len, ST_Intersection(st_buffer(buff.geom, 50), rta.geom)
 FROM rta, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 50), rta.geom))
 
 create table step25_100m as (SELECT rta.rtaid, buff.sm_id, ST_length(ST_Intersection(st_buffer(buff.geom, 100), rta.geom)) as len, ST_Intersection(st_buffer(buff.geom, 100), rta.geom)
 FROM rta, step01 as buff WHERE ST_Intersects(st_buffer(buff.geom, 100), rta.geom))
+
+### STEP26
+alter table step11 add column disttorail double precision, add column fullname character varying;
+
+update step11 set fullname = sub.fullname, disttorail = sub.rail_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.fullname, ST_Distance(a.geom, bg.geom) as rail_dis
+	FROM step11 a
+		LEFT JOIN rail bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
+
+### STEP 27 
+alter table step11 add column disttomjrrd double precision, add column lrskey_mjrrd character varying;
+## 10000 km can be too small
+update step11 set lrskey_mjrrd = sub.LRSKEY, disttomjrrd = sub.mjrrd_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.LRSKEY, ST_Distance(a.geom, bg.geom) as mjrrd_dis
+	FROM step11 a
+		LEFT JOIN mjrrd bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
+
+### STEP 28 
+alter table step11 add column disttombtabus double precision, add column LRSKEY character varying;
+## 10000 km can be too small
+update step11 set LRSKEY = sub.LRSKEY, disttombtabus = sub.mbtabus_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.LRSKEY, ST_Distance(a.geom, bg.geom) as mbtabus_dis
+	FROM step11 a
+		LEFT JOIN mbtabusroutes bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
+
+### STEP 29
+alter table step11 add column w_area2k double precision, add column w_area10k double precision;
+
+update step11 set w_area2k = sub.sum from(
+SELECT DISTINCT ON (buff.smid) buff.smid,  coalesce(sum(ST_Area(ST_Intersection(st_buffer(buff.geom, 2000), water.geom))), 0) as sum
+FROM step11 as buff left join water on ST_Intersects(st_buffer(buff.geom, 2000), water.geom) group by buff.smid)  as sub where step11.smid = sub.smid
+
+
+
+/*create table zarea as (SELECT buff.smid,  ST_Area(ST_Intersection(st_buffer(buff.geom, 2000), water.geom)) as sum
+FROM step11 as buff, water where ST_Intersects(st_buffer(buff.geom, 2000), water.geom))*/
+
+### STEP 30
+alter table step11 add column latwid double precision, add column lonwid double precision;
+
+update step11 set latwid = sub.lat, disttombtabus = sub.lon from (
+SELECT DISTINCT ON (a.smid) a.smid, bg.lat, bg.lon
+	FROM step11 a
+		LEFT JOIN vwind bg ON ST_DWithin(a.geom, bg.geom, 35000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
+
+
