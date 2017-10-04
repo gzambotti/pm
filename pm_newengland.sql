@@ -26,7 +26,7 @@ ALTER TABLE addresses add column geom geometry (Point, 4326);
 UPDATE addresses SET geom = ST_SetSRID(ST_MakePoint(lng,lat), 4326);
 ALTER TABLE addresses ALTER COLUMN geom TYPE geometry(Point,102003) USING ST_Transform(geom,102003);
 CREATE INDEX addresses_gix ON addresses USING GIST (geom);
-
+/*
 # import all data necessary and convert them to ESRI:102003
 # import modelextent_1km to postgis
 shp2pgsql -c -D -I -s 5070 \\path\modelextent_1km.shp modelboundary | psql -d pmne -h localhost -U postgres
@@ -115,7 +115,7 @@ CREATE INDEX mjrrd_gix ON mjrrd USING GIST (geom);
 CREATE INDEX mbtabusroutes_gix ON mbtabusroutes USING GIST (geom);
 CREATE INDEX water_gix ON water USING GIST (geom);
 CREATE INDEX vwind_gix ON vwind USING GIST (geom);
-
+*/
 # spatial join STEP 01 -- verify that all points are within the modelextent1km
 # only the points within the modelextent1km boundry will be included in step01 table
 # requires specify addresses.geom and all fields
@@ -268,10 +268,10 @@ SELECT DISTINCT ON (a.smid) a.smid, bg.LRSKEY, ST_Distance(a.geom, bg.geom) as m
 		LEFT JOIN mjrrd bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
 ### STEP 28 
-alter table step11 add column disttombtabus double precision, add column LRSKEY character varying;
+alter table step11 add column disttombtabus double precision;
 ## 10000 km can be too small
-update step11 set LRSKEY = sub.LRSKEY, disttombtabus = sub.mbtabus_dis from (
-SELECT DISTINCT ON (a.smid) a.smid, bg.LRSKEY, ST_Distance(a.geom, bg.geom) as mbtabus_dis
+update step11 disttombtabus = sub.mbtabus_dis from (
+SELECT DISTINCT ON (a.smid) a.smid, ST_Distance(a.geom, bg.geom) as mbtabus_dis
 	FROM step11 a
 		LEFT JOIN mbtabusroutes bg ON ST_DWithin(a.geom, bg.geom, 10000) ORDER BY a.smid, ST_Distance(a.geom, bg.geom)) as sub where step11.smid = sub.smid ;
 
