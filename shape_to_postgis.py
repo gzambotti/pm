@@ -1,9 +1,20 @@
-# shape_to_postgis.py -- 10/25/2017
-# before to this script make sure that all the shapefile you would like to import are 
+# name: shape_to_postgis.py -- 10/25/2017
+
+# Before to run this script make sure that all the shapefile you would like to import are 
 # within the same folder.
-# also make sure that the name of each shapefile is the name of the table you would like to use
-# later on
-# on a linux or Mac OS the path to shp2pgsql, psql might be different
+# Make sure to run it using conda
+# To install conda visit this website (https://conda.io/docs/index.html)
+# Once conda is install successfully you can create a conda enviroment
+# and then install psycopg2. Below is the conda comands:
+
+# 1) conda create -n pmne python=3.6
+# 2) source activate pmne (this can be different if you use windows OS)
+# 3) conda install -c conda-forge gdal
+# 4) conda list
+# 5) python /path/shape_to_postgis.py (to run the script)
+
+# Also make sure that the name of each shapefile is the name of the table you would like to use
+# later on. On a linux or Mac OS the path to shp2pgsql, psql might be different
 
 import os, subprocess, psycopg2
 

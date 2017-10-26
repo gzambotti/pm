@@ -1,7 +1,11 @@
+# name: raster_to_point_value.py -- 10/25/2017
+
 # A way to run the python script is to use conda
 # To install conda visit this website (https://conda.io/docs/index.html)
 # Once conda is install successfully you can create a conda enviroment
-# and then install gdal. Below is the conda comands:
+# and then install gdal. If you have already installed conda and created 
+# a conda project enviroment, go to step 3, otherwise follow the 
+# commands below:
 
 # 1) conda create -n pmne python=3.6
 # 2) source activate pmne (this can be different if you use windows OS)
