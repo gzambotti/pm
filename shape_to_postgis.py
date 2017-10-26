@@ -9,7 +9,7 @@
 
 # 1) conda create -n pmne python=3.6
 # 2) source activate pmne (this can be different if you use windows OS)
-# 3) conda install -c conda-forge gdal
+# 3) conda install -c conda-forge psycopg2
 # 4) conda list
 # 5) python /path/shape_to_postgis.py (to run the script)
 
