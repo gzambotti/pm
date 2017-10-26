@@ -1,6 +1,9 @@
 # Particulate matter project pm 2.5
-  - Require: Conda (https://conda.io/docs/index.html)
-  - PostGRES/PostGIS (https://www.enterprisedb.com/)
+  - Requirements: 
+    - Conda (https://conda.io/docs/index.html)
+  	- PostGRES/PostGIS (https://www.enterprisedb.com/)
+  	- All the scripts are set to run on a Windows OS, if you are planning to run them on a different OS
+  	  make sure that all the data and software path are correct.  
 
 # PM New England
 1. **pm_newengland_1.sql**

@@ -1,22 +1,24 @@
-# shape_to_postgis.py -- 10/04/2017
+# shape_to_postgis.py -- 10/25/2017
 # before to this script make sure that all the shapefile you would like to import are 
 # within the same folder.
 # also make sure that the name of each shapefile is the name of the table you would like to use
 # later on
+# on a linux or Mac OS the path to shp2pgsql, psql might be different
 
 import os, subprocess, psycopg2
 
+# change the name of your database
+db = 'pm'
 # Choose your PostgreSQL version here
-os.environ['PATH'] += r';C:\Program Files\PostgreSQL\9.6\bin'
+os.environ['PATH'] += r';C:\\Program Files\\PostgreSQL\\9.6\\bin'
 # http://www.postgresql.org/docs/current/static/libpq-envars.html
 os.environ['PGHOST'] = 'localhost'
 os.environ['PGPORT'] = '5432'
 os.environ['PGUSER'] = 'postgres'
 os.environ['PGPASSWORD'] = 'postgres'
-# change the name of your database
-os.environ['PGDATABASE'] = 'test'
+os.environ['PGDATABASE'] = db
 
-conn = psycopg2.connect("dbname=test user=postgres password=postgres")
+conn = psycopg2.connect("dbname="+ db + " user=postgres password=postgres")
 
 def loadTable(base_dir):
 	full_dir = os.walk(base_dir)
@@ -30,9 +32,9 @@ def loadTable(base_dir):
 
 	for shape_path in shapefile_list:
 		shpname = shape_path.split("\\")[-1].split('.')[0]
-		print shpname
-		
-		subprocess.call('shp2pgsql -c -D -I -s 5070 "' + shape_path + ' ' + shpname + '" | psql -d test -h localhost -U postgres ', shell=True)
+		#print shpname
+		#
+		subprocess.call('shp2pgsql -c -D -I -s 5070 "' + shape_path + ' ' + shpname.lower() + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
 		changeSRID(shpname)
 
 def changeSRID(table):
@@ -69,5 +71,5 @@ def createGeoIndex(table):
 	
 if __name__ == '__main__':    
 	# change the name of the data path
-    loadTable('C:\\gis\\p2017\\pmnewengland\\data\\v1')
+    loadTable('C:\\temp\\v1')
     
