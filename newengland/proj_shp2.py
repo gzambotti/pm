@@ -12,7 +12,7 @@ def changeProj(base_dir):
     
     full_dir = os.walk(base_dir)
     shapefile_list = []
-    subprocess.call('ogr2ogr -f "ESRI Shapefile" /Users/cecilia/Desktop/gis/pm/newengland/data/new/g8.shp /Users/cecilia/Desktop/gis/pm/newengland/data/point.shp  -s_srs EPSG:4326 -t_srs EPSG:102003', shell=True)
+    subprocess.call('ogr2ogr -f "ESRI Shapefile" /Users/cecilia/Desktop/gis/pm/newengland/data/new/g8.shp /Users/cecilia/Desktop/gis/pm/newengland/data/allregions.shp  -s_srs EPSG:5070 -t_srs EPSG:102003', shell=True)
            
     for source, dirs, files in full_dir:
         for file_ in files:
