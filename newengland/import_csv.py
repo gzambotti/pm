@@ -19,7 +19,7 @@ schema = { 'geometry': 'Point', 'properties': { 'unique_id': 'str' } }
 prj = {'init': u'epsg:4326'}
 # change the name of the output shapefile and the CVS file
 with collection("some1.shp", "w", "ESRI Shapefile", schema, prj) as output:
-    with open('exampledata.csv', 'rb') as f:
+    with open('data\exampledata.csv', 'rb') as f:
         reader = csv.DictReader(f)
         for row in reader:
             point = Point(float(row['Longitude']), float(row['Latitude']))
