@@ -76,7 +76,7 @@ def changeSRID(table):
 	    tablegeom = results[0][0].split("_")[1]
 
 	    force2D(table, tablegeom)
-	    transformSRID(table, tablegeom)
+	    #transformSRID(table, tablegeom)
 	    createGeoIndex(table)
 
 	    conn.commit()
@@ -88,11 +88,11 @@ def force2D(table, tablegeom):
 	cur.execute(sql)
 	cur.close
 
-def transformSRID(table, tablegeom):
-	cur = conn.cursor()
-	sql = 'alter table ' + table + ' ALTER COLUMN geom TYPE geometry (' + tablegeom  + ', 102003) USING ST_Transform(geom,102003);'
-	cur.execute(sql)
-	cur.close
+#def transformSRID(table, tablegeom):
+#	cur = conn.cursor()
+#	sql = 'alter table ' + table + ' ALTER COLUMN geom TYPE geometry (' + tablegeom  + ', 102003) USING ST_Transform(geom,102003);'
+#	cur.execute(sql)
+#	cur.close
 
 def createGeoIndex(table):
 	cur = conn.cursor()
