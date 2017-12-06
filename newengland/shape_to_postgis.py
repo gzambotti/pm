@@ -16,7 +16,7 @@
 # Also make sure that the name of each shapefile is the name of the table you would like to use
 # later on. On a linux or Mac OS the path to shp2pgsql, psql might be different
 
-import os, subprocess, psycopg2, ogr
+import os, subprocess, psycopg2, ogr, osr
 
 # change the name of your database
 db = 'pm'
@@ -30,7 +30,7 @@ os.environ['PGPASSWORD'] = 'postgres'
 os.environ['PGDATABASE'] = db
 
 conn = psycopg2.connect("dbname="+ db + " user=postgres password=postgres")
-
+"""
 # output SpatialReference
 outSpatialRef = osr.SpatialReference()
 outSpatialRef.ImportFromEPSG(102003)
@@ -50,7 +50,7 @@ def changeProj(base_dir):
 	            layer = dataset.GetLayer()
 	            spatialRef = layer.GetSpatialRef()
 	            print (spatialRef.GetAttrValue('AUTHORITY',1))
-
+"""
 def loadTable(base_dir):
 	full_dir = os.walk(base_dir)
 	shapefile_list = []
@@ -102,5 +102,5 @@ def createGeoIndex(table):
 	
 if __name__ == '__main__':    
 	# change the name of the data path
-    #loadTable('C:\\temp\\v1')
-    changeProj('//Users/cecilia/Desktop/gis/pm/newengland/v1')
+    loadTable(r'C:\gis\p2017\pm\pm\newengland\data\new')
+    #changeProj('//Users/cecilia/Desktop/gis/pm/newengland/v1')

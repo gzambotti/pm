@@ -4,16 +4,32 @@ import os
 driver = ogr.GetDriverByName('ESRI Shapefile')
 
 # get the input layer
-inDataSet = driver.Open(r'/Users/cecilia/Desktop/gis/pm/newengland/v1/select.shp')
+inDataSet = driver.Open(r'C:\gis\p2017\pmnewengland\data\v1\allregions.shp')
 inLayer = inDataSet.GetLayer()
 spatialRef = inLayer.GetSpatialRef()
-print (int(spatialRef.GetAttrValue('AUTHORITY',1)))
+sr = osr.SpatialReference(str(spatialRef))
+# detecting EPSG/SRID
+res = sr.AutoIdentifyEPSG()
+srid = sr.GetAuthorityCode(None)
+
+print srid
+
+print (spatialRef)
+print (spatialRef.GetAttrValue('PROJCS|GEOGCS|AUTHORITY',1))
+
+# from Geometry
+feature = inLayer.GetNextFeature()
+geom = feature.GetGeometryRef()
+spatialRef = geom.GetSpatialReference()
+
 
 
 # input SpatialReference
-inSpatialRef = osr.SpatialReference()
-inSpatialRef.ImportFromEPSG(int(spatialRef.GetAttrValue('AUTHORITY',1)))
+#inSpatialRef = osr.SpatialReference()
+#inSpatialRef.ImportFromEPSG(spatialRef.GetAttrValue('AUTHORITY',1))
 
+
+"""
 # output SpatialReference
 outSpatialRef = osr.SpatialReference()
 outSpatialRef.ImportFromEPSG(102003)
@@ -76,3 +92,5 @@ while inFeature:
 # Save and close the shapefiles
 inDataSet = None
 outDataSet = None
+
+"""

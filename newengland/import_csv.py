@@ -4,17 +4,14 @@
 # if the CVS file has a different structure please make 
 # sure you change the schema as well as the prj
 
-
-
 # python requirement: shapely and fiona
 # conda install -c scitools shapely
 # conda install -c conda-forge fiona
 
 
-import csv
+import csv, os, subprocess
 from shapely.geometry import Point, mapping
 from fiona import collection
-import os, subprocess
 from osgeo import ogr, osr
 
 """
@@ -51,5 +48,5 @@ def changeProj(inSHP, outSHP):
 
 
 if __name__ == '__main__':
-    importCSVFile('/Users/cecilia/Desktop/gis/pm/newengland/data/exampledata.csv','/Users/cecilia/Desktop/gis/pm/newengland/data/z2.shp')
-    changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data/z2.shp', '/Users/cecilia/Desktop/gis/pm/newengland/data/new/r6.shp')
+    importCSVFile(r'C:\gis\p2017\pm\pm\newengland\data\exampledata.csv',r'C:\gis\p2017\pm\pm\newengland\data\z2.shp')
+    changeProj(r'C:\gis\p2017\pm\pm\newengland\data\z2.shp', r'C:\gis\p2017\pm\pm\newengland\data\new\addresses.shp')

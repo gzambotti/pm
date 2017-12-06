@@ -1,3 +1,5 @@
+# remove the double quote " from the smid field
+update addresses set smid = trim(smid, '"')
 # spatial join STEP 01 -- verify that all points are within the modelextent1km
 # only the points within the modelextent1km boundry will be included in step01 table
 # requires specify addresses.geom and all fields
@@ -33,12 +35,12 @@ SELECT DISTINCT ON (a.smid) a.smid, bg.modelregio
 
 
 ### export step02 postgis table to shapefile (step02.shp) -- set the output path
-pgsql2shp -f "C:\\gis\\p2017\\pmnewengland\\data\\double_check\\step02.shp" -h localhost -u postgres -P postgres pmne "select * from step02"
+#pgsql2shp -f "C:\\gis\\p2017\\pmnewengland\\data\\double_check\\step02.shp" -h localhost -u postgres -P postgres pmne "select * from step02"
 ### STEP06-10 >> extract value to point using GDAL/OGR python library >> run script raster_to_point_value.py
 ### make sure the script input are correct (raster path, step02 path, and the fields name to be create)
 ### make sure all raster tif are projected correctly (ESRI 102003)
 ### once this operation is completed you need to reload the step02.shp to postgis and named it step06
-shp2pgsql -c -D -I -s 102003 \\path\\step02.shp step11 | psql -d pmne -h localhost -U postgres
+#shp2pgsql -c -D -I -s 102003 \\path\\step02.shp step11 | psql -d pmne -h localhost -U postgres
 ### complete steps 06-10. Add two fields and calculate values
 alter table step11 add column pctdvhif12 double precision, add column pctdvlof12 double precision;
 
