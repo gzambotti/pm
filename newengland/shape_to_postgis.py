@@ -52,22 +52,46 @@ def changeProj(base_dir):
 	            print (spatialRef.GetAttrValue('AUTHORITY',1))
 """
 def loadTable(base_dir):
+	for root,dirs,files in os.walk(base_dir):
+		if root[len(base_dir)+1:].count(os.sep)<2:
+			for file_ in files:
+				
+				if file_[-3:] == 'shp' and file_[0] == '_' :
+					shapefile_path = os.path.join(base_dir, file_)
+					#inSHP = r"" + shapefile_path + ""
+					outSHP = r"" + base_dir + "\\" + shapefile_path.split("\\")[-1].split('.')[0] + ".shp"
+					
+					print outSHP
+					#print inSHP
+					print shapefile_path.split("\\")[-1].split('.')[0]
+					subprocess.call('shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + shapefile_path.split("\\")[-1].split('.')[0] + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+
+	"""
 	full_dir = os.walk(base_dir)
 	shapefile_list = []
 	for source, dirs, files in full_dir:
 	    for file_ in files:
 	        if file_[-3:] == 'shp':        	
 	            shapefile_path = os.path.join(base_dir, file_)
-	            #print shapefile_path
+	            
 	            shapefile_list.append(shapefile_path)
-
-	for shape_path in shapefile_list:
-		shpname = shape_path.split("\\")[-1].split('.')[0]
-		#print shpname
-		#
-		subprocess.call('shp2pgsql -c -D -I -s 5070 "' + shape_path + ' ' + shpname.lower() + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
-		changeSRID(shpname)
-
+	            inSHP = r"" + shapefile_path + ""
+	            #outSHP = r"'" + shapefile_path + "'"
+	            outSHP = r"" + base_dir + "\\_" + shapefile_path.split("\\")[-1].split('.')[0]
+	            print outSHP
+	            print inSHP
+	            subprocess.call('ogr2ogr -f "ESRI Shapefile" ' + outSHP + '  ' + inSHP + ' -t_srs EPSG:5070', shell=True)
+	            #subprocess.call('shp2pgsql -c -D -I -s 5070 "' + shape_path + ' ' + shpname.lower() + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+	            
+	            
+    	
+    	#for shape_path in shapefile_list:
+			#shpname = shape_path.split("\\")[-1].split('.')[0]
+		#	print shpname
+			#
+			#subprocess.call('shp2pgsql -c -D -I -s 5070 "' + shape_path + ' ' + shpname.lower() + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+			#changeSRID(shpname)		   				
+	"""
 def changeSRID(table):
 	    cur = conn.cursor()	    
 	    sql = 'select ST_GeometryType(geom) as result FROM ' + table + ' limit 1;'
