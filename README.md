@@ -7,6 +7,12 @@
   	- Create a folder that holds all the shapefile dataset.
   	- The shapefile dataset must be projected in the   
 
+# PM Korea:
+0. **pm.sql**
+	- Follow the instrcution within the sql
+1. **pmkorea.sql**
+	- Follow the instrcution within the sql
+
 # PM New England:
 
 0. **shape_proj.py**
