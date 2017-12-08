@@ -14,6 +14,7 @@
 # 3) conda install -c conda-forge gdal
 # 4) conda list
 # 5) python /path/raster_to_point_value.py (to run the script)
+
 import os, subprocess
 from osgeo import ogr, osr
 
