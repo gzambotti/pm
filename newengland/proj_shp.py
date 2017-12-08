@@ -1,96 +1,30 @@
+"""
+ogr2ogr -f "ESRI Shapefile" /Users/cecilia/Desktop/gis/pm/newengland/data/new/g2.shp /Users/cecilia/Desktop/gis/pm/newengland/data/allregions.shp  -s_srs EPSG:102003 -t_srs EPSG:5070
+"""
+import os, subprocess
 from osgeo import ogr, osr
-import os
 
-driver = ogr.GetDriverByName('ESRI Shapefile')
+# change projection for all layers in a specific folder
+# the new shapefile will start with an underscore    
+def changeProj(base_dir):
+    for root,dirs,files in os.walk(base_dir):
+        if root[len(base_dir)+1:].count(os.sep)<2:
+            for file_ in files:
+                #print(os.path.join(root,f))
+                if file_[-3:] == 'shp':
+                    shapefile_path = os.path.join(base_dir, file_)
+                    # OS MAC/Linux
+                    inSHP = shapefile_path
+                    outSHP = base_dir + "/_" + file_
+                    subprocess.call('ogr2ogr -f "ESRI Shapefile" ' + outSHP + '  ' + inSHP + ' -t_srs EPSG:5070', shell=True)
+                    # OS Win
+                    #inSHP = r"" + shapefile_path + ""
+                    #outSHP = r"" + base_dir + "\\_" + shapefile_path.split("\\")[-1].split('.')[0] + ".shp
+                    #outSHP = r"" + base_dir + "/_" + shapefile_path.split("\\")[-1].split('.')[0] + ".shp"
+                    print outSHP
+                    print inSHP
+                    
 
-# get the input layer
-inDataSet = driver.Open(r'C:\gis\p2017\pmnewengland\data\v1\allregions.shp')
-inLayer = inDataSet.GetLayer()
-spatialRef = inLayer.GetSpatialRef()
-sr = osr.SpatialReference(str(spatialRef))
-# detecting EPSG/SRID
-res = sr.AutoIdentifyEPSG()
-srid = sr.GetAuthorityCode(None)
-
-print srid
-
-print (spatialRef)
-print (spatialRef.GetAttrValue('PROJCS|GEOGCS|AUTHORITY',1))
-
-# from Geometry
-feature = inLayer.GetNextFeature()
-geom = feature.GetGeometryRef()
-spatialRef = geom.GetSpatialReference()
-
-
-
-# input SpatialReference
-#inSpatialRef = osr.SpatialReference()
-#inSpatialRef.ImportFromEPSG(spatialRef.GetAttrValue('AUTHORITY',1))
-
-
-"""
-# output SpatialReference
-outSpatialRef = osr.SpatialReference()
-outSpatialRef.ImportFromEPSG(102003)
-
-# create the CoordinateTransformation
-coordTrans = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
-
-
-
-feature = inLayer.GetNextFeature()
-geom = feature.GetGeometryRef()
-print(geom.GetGeometryType())
-print(geom.GetGeometryName())
-
-
-if(geom.GetGeometryName() == 'POLYGON' or geom.GetGeometryName() == 'MULTIPOLYGON'):
-    outTypeGeom = ogr.wkbPolygon
-if(geom.GetGeometryName() == 'POINT' or geom.GetGeometryName() == 'MULTIPOINT'):
-    outTypeGeom = ogr.wkbPoint
-if(geom.GetGeometryName() == 'LINESTRING' or geom.GetGeometryName() == 'MULTILINESTRING'):
-    outTypeGeom = ogr.wkbLineString
-
-
-
-# create the output layer
-outputShapefile = r'/Users/cecilia/Desktop/gis/pm/newengland/v1/l4.shp'
-if os.path.exists(outputShapefile):
-    driver.DeleteDataSource(outputShapefile)
-outDataSet = driver.CreateDataSource(outputShapefile)
-outLayer = outDataSet.CreateLayer("l4", geom_type=outTypeGeom)
-
-# add fields
-inLayerDefn = inLayer.GetLayerDefn()
-for i in range(0, inLayerDefn.GetFieldCount()):
-    fieldDefn = inLayerDefn.GetFieldDefn(i)
-    outLayer.CreateField(fieldDefn)
-
-# get the output layer's feature definition
-outLayerDefn = outLayer.GetLayerDefn()
-
-# loop through the input features
-inFeature = inLayer.GetNextFeature()
-while inFeature:
-    # get the input geometry
-    geom = inFeature.GetGeometryRef()
-    # reproject the geometry
-    geom.Transform(coordTrans)
-    # create a new feature
-    outFeature = ogr.Feature(outLayerDefn)
-    # set the geometry and attribute
-    outFeature.SetGeometry(geom)
-    for i in range(0, outLayerDefn.GetFieldCount()):
-        outFeature.SetField(outLayerDefn.GetFieldDefn(i).GetNameRef(), inFeature.GetField(i))
-    # add the feature to the shapefile
-    outLayer.CreateFeature(outFeature)
-    # dereference the features and get the next input feature
-    outFeature = None
-    inFeature = inLayer.GetNextFeature()
-
-# Save and close the shapefiles
-inDataSet = None
-outDataSet = None
-
-"""
+if __name__ == '__main__':
+    changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data/new')
+    
