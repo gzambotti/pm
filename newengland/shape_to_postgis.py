@@ -1,4 +1,6 @@
-# name: shape_to_postgis.py -- 10/25/2017
+# name: shape_to_postgis.py -- 12/07/2017
+
+# This script load the shapefile into postgres, create a spatial index, and force 2D
 
 # Before to run this script make sure that all the shapefile you would like to import are 
 # within the same folder.
@@ -38,21 +40,24 @@ def loadTable(base_dir):
 	for root,dirs,files in os.walk(base_dir):
 		if root[len(base_dir)+1:].count(os.sep)<2:
 			for file_ in files:				
+				# load only shapefile (.shp) that start with _
 				if file_[-3:] == 'shp' and file_[0] == '_' :
 					shapefile_path = os.path.join(base_dir, file_)
 					#inSHP = r"" + shapefile_path + ""
 					#outSHP = r"" + base_dir + "\\" + shapefile_path.split("\\")[-1].split('.')[0] + ".shp"
 					inSHP = file_.split('.')[0]
 					outSHP = base_dir + "/" + file_.split('.')[0] + ".shp"
+					# update the array shapefile_list
 					shapefile_list.append(file_.split('.')[0])
-					print outSHP
+					#print outSHP
 					#print inSHP
 					#print shapefile_path.split("\\")[-1].split('.')[0]
-					#subprocess.call('/Library/PostgreSQL/9.5/bin/shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + inSHP + '" | /Library/PostgreSQL/9.5/bin/psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+					subprocess.call('/Library/PostgreSQL/9.5/bin/shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + inSHP + '" | /Library/PostgreSQL/9.5/bin/psql -d ' + db + ' -h localhost -U postgres ', shell=True)
 	for shapename in shapefile_list:
-		print shapename
+		#print shapename
 		changeSRID(shapename)
 
+# function to get the geometry type need for force2D, and craeteGeoIndex
 def changeSRID(table):
 	    cur = conn.cursor()	    
 	    sql = 'select ST_GeometryType(geom) as result FROM ' + table + ' limit 1;'
@@ -61,18 +66,17 @@ def changeSRID(table):
 	    tablegeom = results[0][0].split("_")[1]
 
 	    force2D(table, tablegeom)
-	    #transformSRID(table, tablegeom) -- no need it anymore
 	    createGeoIndex(table)
 
 	    conn.commit()
 	    cur.close
-
+# function to force table to 2D
 def force2D(table, tablegeom):
 	cur = conn.cursor()
 	sql = 'alter table ' + table + ' ALTER COLUMN geom TYPE geometry (' + tablegeom  + ') USING ST_Force2D(geom);'
 	cur.execute(sql)
 	cur.close
-
+# function to create spatial index
 def createGeoIndex(table):
 	cur = conn.cursor()
 	sql = 'create index ' + table + '_gix on ' + table + ' USING GIST (geom);'	
@@ -83,4 +87,4 @@ if __name__ == '__main__':
 	# change the name of the data path
 	# OS Windows
     #loadTable(r'C:\gis\p2017\pm\pm\newengland\data\new')
-    loadTable('/Users/cecilia/Desktop/gis/pm/newengland/data/new')
+    loadTable('/Users/cecilia/Desktop/gis/pm/newengland/data')

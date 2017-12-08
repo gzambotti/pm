@@ -1,4 +1,5 @@
-# code by Giovanni Zambotti  12/4/2017
+# name: import_csv.py -- 12/07/2017
+
 # convert a CVS file to a shapefile
 # the script works with a predifine schema and projection
 # if the CVS file has a different structure please make 
@@ -7,6 +8,7 @@
 # python requirement: shapely and fiona
 # conda install -c scitools shapely
 # conda install -c conda-forge fiona
+# conda install -c conda-forge gdal
 
 
 import csv, os, subprocess
@@ -48,5 +50,8 @@ def changeProj(inSHP, outSHP):
 
 
 if __name__ == '__main__':
-    importCSVFile(r'C:\gis\p2017\pm\pm\newengland\data\exampledata.csv',r'C:\gis\p2017\pm\pm\newengland\data\z2.shp')
-    changeProj(r'C:\gis\p2017\pm\pm\newengland\data\z2.shp', r'C:\gis\p2017\pm\pm\newengland\data\new\addresses.shp')
+    importCSVFile('/Users/cecilia/Desktop/gis/pm/newengland/data/exampledata.csv','/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp')
+    changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp', '/Users/cecilia/Desktop/gis/pm/newengland/data/_address.shp')
+    # OS Windows
+    #importCSVFile(r'C:\gis\p2017\pm\pm\newengland\data\exampledata.csv',r'C:\gis\p2017\pm\pm\newengland\data\address.shp')
+    #changeProj(r'C:\gis\p2017\pm\pm\newengland\data\addresses.shp', r'C:\gis\p2017\pm\pm\newengland\data\_addresses.shp')

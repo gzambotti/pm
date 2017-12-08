@@ -8,25 +8,30 @@
   	- The shapefile dataset must be projected in the   
 
 # PM New England
-0. **import_csv.py**
+
+0. **proj_shp.py**
+	- loop all the shapefile in the data folder and reproject them in [NAD83 / Conus Albers ( https://epsg.io/5070# )]
+
+1. **import_csv.py**
 	- Covert a csv file to shapefile (addresses.shp), and store it in the same shapefiel folder.
 	- Change projection to the shapefile using ogr2ogr command line.
 
-1. **raster_to_point_value.py**
+2. **raster_to_point_value.py**
 	- import the raster values to the shapefile address
 
-2. **pm_newengland_1.sql**
+3. **pm_newengland_1.sql**
 	- Create a new DB, and PostGIS extension.
-	- Add the coordinate system required [NAD83 / Conus Albers (https://epsg.io/5070#)].
+	- Add the coordinate system required [NAD83 / Conus Albers ( https://epsg.io/5070# )].
 
-3. **shape_to_postgis.py**
+4. **shape_to_postgis.py**
 	- Import all the shapefile to PostGIS:
 		- Make sure all the shapefile are stored in the same folder.
-		- The name of the shapefile will be the name of the table, rename them if need it.
+		- The name of the shapefile will be the name of the table, rename the shapefile if need it.
 		- Make sure they all have the same coordinate system, by default should be (NAD83 / Conus Albers).
+		- Force 2D
 		- Create a spatial index for all tables.
 
-4. **pm_newengland_2.sql**
+5. **pm_newengland_2.sql**
 	- Run all sql statement	
 
 

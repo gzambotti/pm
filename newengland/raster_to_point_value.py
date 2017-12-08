@@ -1,5 +1,8 @@
 # name: raster_to_point_value.py -- 10/25/2017
 
+# This script extract the value from a raster file and load into a shapefile
+# Make sure the rasters are proeject in EPGS: 5070
+
 # A way to run the python script is to use conda
 # To install conda visit this website (https://conda.io/docs/index.html)
 # Once conda is install successfully you can create a conda enviroment
@@ -13,8 +16,6 @@
 # 4) conda list
 # 5) python /path/raster_to_point_value.py (to run the script)
 
-
-
 from osgeo import gdal,ogr
 import struct
 
@@ -22,7 +23,6 @@ def extractvalues(pathImage, pathAddresses, fieldName):
     
     src_filename = pathImage
     shp_filename = pathAddresses
-
 
     src_ds=gdal.Open(src_filename) 
     gt=src_ds.GetGeoTransform()
