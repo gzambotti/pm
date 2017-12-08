@@ -40,18 +40,14 @@ def importCSVFile(csvPath, shpPath):
 """
 change the shapefile projection from 4326 to 5070 using ogr2ogr
 """
-def changeProj(inSHP, outSHP):
-    #if not os.path.exists('data/new'):
-    #    os.makedirs('data/new')
-    
-    #full_dir = os.walk(base_dir)
-    #shapefile_list = []
+def changeProj(inSHP, outSHP):    
     subprocess.call('ogr2ogr -f "ESRI Shapefile" ' + outSHP + '  ' + inSHP + ' -s_srs EPSG:4326 -t_srs EPSG:5070', shell=True)
 
 
 if __name__ == '__main__':
-    importCSVFile('/Users/cecilia/Desktop/gis/pm/newengland/data/exampledata.csv','/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp')
-    changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp', '/Users/cecilia/Desktop/gis/pm/newengland/data/_address.shp')
+    # OS Mac or Linux
+    #importCSVFile('/Users/cecilia/Desktop/gis/pm/newengland/data/exampledata.csv','/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp')
+    #changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data/address.shp', '/Users/cecilia/Desktop/gis/pm/newengland/data/_address.shp')
     # OS Windows
-    #importCSVFile(r'C:\gis\p2017\pm\pm\newengland\data\exampledata.csv',r'C:\gis\p2017\pm\pm\newengland\data\address.shp')
-    #changeProj(r'C:\gis\p2017\pm\pm\newengland\data\addresses.shp', r'C:\gis\p2017\pm\pm\newengland\data\_addresses.shp')
+    importCSVFile(r'C:\gis\p2017\pm\pm\newengland\data\exampledata.csv',r'C:\gis\p2017\pm\pm\newengland\data\addresses.shp')
+    changeProj(r'C:\gis\p2017\pm\pm\newengland\data\addresses.shp', r'C:\gis\p2017\pm\pm\newengland\data\_addresses.shp')

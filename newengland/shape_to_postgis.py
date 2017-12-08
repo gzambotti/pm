@@ -24,8 +24,9 @@ import os, subprocess, psycopg2, ogr, osr
 db = 'pm'
 # Choose your PostgreSQL version here
 # OS for Windows
-#os.environ['PATH'] += r';C:\\Program Files\\PostgreSQL\\9.6\\bin'
-os.environ['PATH'] += '/Library/PostgreSQL/9.5/bin/'
+os.environ['PATH'] += r';C:\\Program Files\\PostgreSQL\\9.6\\bin'
+# OS for Mac or Linux
+#os.environ['PATH'] += '/Library/PostgreSQL/9.5/bin/'
 # http://www.postgresql.org/docs/current/static/libpq-envars.html
 os.environ['PGHOST'] = 'localhost'
 os.environ['PGPORT'] = '5432'
@@ -52,7 +53,10 @@ def loadTable(base_dir):
 					#print outSHP
 					#print inSHP
 					#print shapefile_path.split("\\")[-1].split('.')[0]
-					subprocess.call('/Library/PostgreSQL/9.5/bin/shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + inSHP + '" | /Library/PostgreSQL/9.5/bin/psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+					# OS for Mac or Linux
+					#subprocess.call('/Library/PostgreSQL/9.5/bin/shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + inSHP + '" | /Library/PostgreSQL/9.5/bin/psql -d ' + db + ' -h localhost -U postgres ', shell=True)
+					# OS Windows
+					subprocess.call('shp2pgsql -c -D -I -s 5070 "' + outSHP + ' ' + inSHP + '" | psql -d ' + db + ' -h localhost -U postgres ', shell=True)
 	for shapename in shapefile_list:
 		#print shapename
 		changeSRID(shapename)
@@ -86,5 +90,6 @@ def createGeoIndex(table):
 if __name__ == '__main__':    
 	# change the name of the data path
 	# OS Windows
-    #loadTable(r'C:\gis\p2017\pm\pm\newengland\data\new')
-    loadTable('/Users/cecilia/Desktop/gis/pm/newengland/data')
+    loadTable(r'C:\gis\p2017\pm\pm\newengland\data')
+    # OS Mac or Linux
+    #loadTable('/Users/cecilia/Desktop/gis/pm/newengland/data')

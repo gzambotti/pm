@@ -39,5 +39,8 @@ def changeProj(base_dir):
                     
 
 if __name__ == '__main__':
-    changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data')
+    ###  OS Mac or Linux
+    #changeProj('/Users/cecilia/Desktop/gis/pm/newengland/data')
+    ### OS Windows
+    changeProj(r'C:\gis\p2017\pm\pm\newengland\data')
     
