@@ -1,4 +1,4 @@
-# Particulate matter project pm 2.5
+# Particulate matter (pm 2.5) and gas pollutant (C02) projects
   - Requirements: 
     - Conda (https://conda.io/docs/index.html)
   	- PostGRES/PostGIS (https://www.enterprisedb.com/)
@@ -7,13 +7,13 @@
   	- Create a folder that holds all the shapefile dataset.
   	- The shapefile dataset must be projected in the   
 
-# PM Korea:
+# PM 2.5 Korea:
 0. **pm.sql**
 	- Follow the instrcution within the sql
 1. **pmkorea.sql**
 	- Follow the instrcution within the sql
 
-# PM New England:
+# C02 New England:
 
 0. **shape_proj.py**
 	- Reproject all the shapefile in the data folder to [NAD83 / Conus Albers ( https://epsg.io/5070# )]
@@ -22,7 +22,7 @@
 	- Change projection to the shapefile using ogr2ogr command line, and create a new shapefile ("_addresses.shp").
 2. **raster_to_point_value.py**
 	- Import the raster values to the shapefile ("_addresses.shp").
-3. **pm_newengland_1.sql**
+3. **co2_newengland_1.sql**
 	- Create a new DB, and PostGIS extension.
 	- Add the coordinate system required [NAD83 / Conus Albers ( https://epsg.io/5070# )].
 4. **shape_to_postgis.py**
@@ -32,7 +32,7 @@
 		- Make sure they all have the same coordinate system, by default should be (NAD83 / Conus Albers).
 		- Force 2D
 		- Create a spatial index for all tables.
-5. **pm_newengland_2.sql**
+5. **co2_newengland_2.sql**
 	- Run all sql statement to perform the data analysis.	
 
 
