@@ -6,6 +6,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 # choose a database name
 dbname = "test"
 
+# function to create a database
 def createdb():
         conn_string = "host='localhost' user='postgres' password='postgres'"
         conn = psycopg2.connect(conn_string)
@@ -16,7 +17,7 @@ def createdb():
         cursor.close()
         conn.close()
 
-
+# function to create a database postgis extension
 def createpostgisext():
         conn_string = "host='localhost' dbname='" + dbname + "' user='postgres' password='postgres'"
         conn = psycopg2.connect(conn_string)
