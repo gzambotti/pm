@@ -23,7 +23,7 @@
 2. **raster_to_point_value.py**
 	- Import the raster values to the shapefile ("_addresses.shp").
 3. **createdb.py**
-	- Create a new DB, and PostGIS extension.
+	- Create a new DB, and add the PostGIS extension.
 	- The coordinate system required 5070 is already into PostGRES/PostGIS [NAD83 / Conus Albers ( https://epsg.io/5070# )].
 4. **shape_to_postgis.py**
 	- Import all the shapefile to PostGIS:
